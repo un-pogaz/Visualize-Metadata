@@ -14,10 +14,12 @@ try:
 except ImportError:
     from PyQt5.Qt import QToolButton, QVBoxLayout
 
+from functools import partial
+
 from calibre.gui2.actions import InterfaceAction
 from calibre.gui2.widgets2 import Dialog
 
-from .common_utils import PLUGIN_NAME, current_db, get_gui, get_icon
+from .common_utils import PLUGIN_NAME, current_db, debug_print, get_gui, get_icon
 from .common_utils.widgets import KeyValueComboBox
 
 PLUGIN_ICON = 'images/plugin.png'
@@ -32,22 +34,34 @@ class VisualizeMetadataAction(InterfaceAction):
     dont_add_to = frozenset(['context-menu-device'])
     
     def genesis(self):
+        self.all_dialogs = []
         self.qaction.setIcon(get_icon(PLUGIN_ICON))
         self.qaction.triggered.connect(self.show_dialog)
     
+    def library_changed(self, db):
+        if self.all_dialogs:
+            debug_print(f'Closing {len(self.all_dialogs)} dialogs')
+        for d in list(self.all_dialogs):
+            d.close()
+        self.all_dialogs.clear()
+    
+    def close_dialog(self, dialog, code):
+        if dialog in self.all_dialogs:
+            self.all_dialogs.remove(dialog)
+    
     def show_dialog(self):
-        VisualizeMetadataDialog(parent=get_gui()).show()
+        d = VisualizeMetadataDialog()
+        self.all_dialogs.append(d)
+        d.finished.connect(partial(self.close_dialog, d))
+        d.show()
 
 
 class VisualizeMetadataDialog(Dialog):
-    def __init__(
-        self,
-        parent=None,
-    ):
+    def __init__(self):
         Dialog.__init__(self,
             title=_('View CSV content data'),
             name='plugin.VisualizeMetadata:VisualizeMetadataDialog',
-            parent=parent,
+            parent=get_gui(),
         )
 
     def setup_ui(self):
