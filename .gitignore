@@ -1,0 +1,13 @@
+## gitignore
+## https://git-scm.com/docs/gitignore
+##
+
+__pycache__/
+.ruff_cache/
+.vscode/
+--*/
+zz*
+*.lnk
+*.url
+*.mo
+MobileRead_post.bbcode
