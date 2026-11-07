@@ -14,6 +14,7 @@ try:
 except ImportError:
     from PyQt5.Qt import QHBoxLayout, QPushButton, QToolButton, QVBoxLayout
 
+from enum import Enum
 from functools import partial
 from typing import Set
 
@@ -59,6 +60,13 @@ class VisualizeMetadataAction(InterfaceAction):
         d.show()
 
 
+class GroupSort(Enum):
+    alphabetical_ascending = _('Alphabetical (ascending)')
+    alphabetical_descending = _('Alphabetical (descending)')
+    size_ascending = _('Size (ascending)')
+    size_descending = _('Size (descending)')
+
+
 def get_analyze_fields() -> Set[str]:
     db = current_db()
     fm = db.field_metadata
@@ -77,6 +85,7 @@ def get_analyze_fields() -> Set[str]:
 
 class VisualizeMetadataDialog(Dialog):
     TITLE = _('Visualize Metadata')
+    last_group_sort: GroupSort = GroupSort.alphabetical_ascending
     
     def __init__(self):
         Dialog.__init__(self,
@@ -109,6 +118,15 @@ class VisualizeMetadataDialog(Dialog):
         h.addWidget(self.button_reload)
         h.addStretch()
         
+        group_sort = {n:n._value_ for n in GroupSort._member_map_.values()}
+        self.group_sort = KeyValueComboBox(group_sort, selected_key=self.last_group_sort, parent=self)
+        self.group_sort.currentIndexChanged.connect(self.group_sort_changed)
+        
+        h = QHBoxLayout()
+        l.addLayout(h)
+        h.addWidget(self.group_sort)
+        h.addStretch()
+        
         csv = QPushButton('Export CSV', self)
         csv.clicked.connect(self.export_csv)
         json = QPushButton('Export JSON', self)
@@ -121,6 +139,9 @@ class VisualizeMetadataDialog(Dialog):
         h.addStretch()
         
         l.addStretch()
+
+    def group_sort_changed(self):
+        VisualizeMetadataDialog.last_group_sort = self.group_sort.selected_key()
 
     def field_changed(self):
         self.field_selected.selected_key()
