@@ -76,9 +76,11 @@ def get_analyze_fields() -> Set[str]:
 
 
 class VisualizeMetadataDialog(Dialog):
+    TITLE = _('Visualize Metadata')
+    
     def __init__(self):
         Dialog.__init__(self,
-            title=_('Visualize Metadata'),
+            title=self.TITLE,
             name='plugin.VisualizeMetadata:VisualizeMetadataDialog',
             parent=get_gui(),
         )
@@ -96,8 +98,10 @@ class VisualizeMetadataDialog(Dialog):
         ))
         self.field_selected = KeyValueComboBox(analyze_fields, parent=self)
         self.field_selected.setCurrentIndex(-1)
+        self.field_selected.currentIndexChanged.connect(self.field_changed)
         self.button_reload = QPushButton(get_icon('view-refresh.png'), '', self)
         self.button_reload.setToolTip(_('Refresh the visualization'))
+        self.button_reload.clicked.connect(self.refresh)
         
         h = QHBoxLayout()
         l.addLayout(h)
@@ -106,7 +110,9 @@ class VisualizeMetadataDialog(Dialog):
         h.addStretch()
         
         csv = QPushButton('Export CSV', self)
+        csv.clicked.connect(self.export_csv)
         json = QPushButton('Export JSON', self)
+        json.clicked.connect(self.export_json)
         
         h = QHBoxLayout()
         l.addLayout(h)
@@ -115,3 +121,17 @@ class VisualizeMetadataDialog(Dialog):
         h.addStretch()
         
         l.addStretch()
+
+    def field_changed(self):
+        self.field_selected.selected_key()
+
+    def refresh(self):
+        if self.field_selected.currentIndex() < 0:
+            return
+        self.setWindowTitle(self.TITLE + ' :: ' + self.field_selected.currentText())
+
+    def export_csv(self):
+        pass
+
+    def export_json(self):
+        pass
