@@ -59,7 +59,7 @@ class VisualizeMetadataAction(InterfaceAction):
 class VisualizeMetadataDialog(Dialog):
     def __init__(self):
         Dialog.__init__(self,
-            title=_('View CSV content data'),
+            title=_('Visualize Metadata'),
             name='plugin.VisualizeMetadata:VisualizeMetadataDialog',
             parent=get_gui(),
         )
