@@ -10,16 +10,19 @@ except NameError:
     pass  # load_translations() added in calibre 1.9
 
 try:
-    from qt.core import QToolButton, QVBoxLayout
+    from qt.core import QHBoxLayout, QPushButton, QToolButton, QVBoxLayout
 except ImportError:
-    from PyQt5.Qt import QToolButton, QVBoxLayout
+    from PyQt5.Qt import QHBoxLayout, QPushButton, QToolButton, QVBoxLayout
 
 from functools import partial
+from typing import Set
 
 from calibre.gui2.actions import InterfaceAction
 from calibre.gui2.widgets2 import Dialog
+from calibre.utils.icu import sort_key
 
 from .common_utils import PLUGIN_NAME, current_db, debug_print, get_gui, get_icon
+from .common_utils.librarys import field_name
 from .common_utils.widgets import KeyValueComboBox
 
 PLUGIN_ICON = 'images/plugin.png'
@@ -56,6 +59,22 @@ class VisualizeMetadataAction(InterfaceAction):
         d.show()
 
 
+def get_analyze_fields() -> Set[str]:
+    db = current_db()
+    fm = db.field_metadata
+    rslt = set()
+    fields = set()
+    fields.update(fm.displayable_field_keys())
+    fields.update(fm.custom_field_keys(False))
+    fields.difference_update(('id', 'path', 'uuid'))
+    fields.difference_update(('title', 'title_sort', 'sort', 'author_sort'))
+    for field in fields:
+        if fm[field]['datatype'] == 'comments':
+            continue
+        rslt.add(field)
+    return rslt
+
+
 class VisualizeMetadataDialog(Dialog):
     def __init__(self):
         Dialog.__init__(self,
@@ -67,3 +86,32 @@ class VisualizeMetadataDialog(Dialog):
     def setup_ui(self):
         l = QVBoxLayout(self)
         self.setLayout(l)
+        self.setMinimumSize(500, 400)
+        
+        db = current_db()
+        fm = db.field_metadata
+        analyze_fields = dict(sorted(
+            ((n,field_name(n, fm)) for n in get_analyze_fields()),
+            key=lambda x:sort_key(x[1]),
+        ))
+        self.field_selected = KeyValueComboBox(analyze_fields, parent=self)
+        self.field_selected.setCurrentIndex(-1)
+        self.button_reload = QPushButton(get_icon('view-refresh.png'), '', self)
+        self.button_reload.setToolTip(_('Refresh the visualization'))
+        
+        h = QHBoxLayout()
+        l.addLayout(h)
+        h.addWidget(self.field_selected)
+        h.addWidget(self.button_reload)
+        h.addStretch()
+        
+        csv = QPushButton('Export CSV', self)
+        json = QPushButton('Export JSON', self)
+        
+        h = QHBoxLayout()
+        l.addLayout(h)
+        h.addWidget(csv)
+        h.addWidget(json)
+        h.addStretch()
+        
+        l.addStretch()
