@@ -345,6 +345,8 @@ class VisualizeMetadataDialog(Dialog):
         self.legends.addItem(spacer, r+1, 3)
 
     def export_csv(self):
+        if not self.data:
+            return
         file = pick_file_to_export(self.field_selected.selected_key(), 'csv', self)
         if not file:
             return
@@ -359,6 +361,8 @@ class VisualizeMetadataDialog(Dialog):
 
     def export_json(self):
         import json
+        if not self.data:
+            return
         file = pick_file_to_export(self.field_selected.selected_key(), 'json', self)
         if not file:
             return
