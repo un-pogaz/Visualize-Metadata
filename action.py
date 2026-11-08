@@ -233,6 +233,7 @@ class QColorWidget(QWidget):
 class VisualizeMetadataDialog(Dialog):
     TITLE = _('Visualize Metadata')
     NO_VALUE = _('no value')
+    NO_VALUE2 = f'<{NO_VALUE}>'
     last_group_sort: GroupSort = GroupSort.size_descending
     
     def __init__(self):
@@ -352,6 +353,8 @@ class VisualizeMetadataDialog(Dialog):
             field_name = self.field_selected.currentText().replace('"', '""')
             f.write('"{}","{}"\n'.format(field_name, 'Count'))
             for k,v in self.data.items():
+                if k is None:
+                    k = self.NO_VALUE2
                 f.write('"{}",{}\n'.format(k.replace('"', '""'), v))
 
     def export_json(self):
@@ -359,5 +362,6 @@ class VisualizeMetadataDialog(Dialog):
         file = pick_file_to_export(self.field_selected.selected_key(), 'json', self)
         if not file:
             return
+        data = {(self.NO_VALUE2 if k is None else k):v for k,v in self.data.items()}
         with open(file, 'wt', newline='\n', encoding='utf-8') as f:
-            json.dump(self.data, f, ensure_ascii=False, indent=2)
+            json.dump(data, f, ensure_ascii=False, indent=2)
