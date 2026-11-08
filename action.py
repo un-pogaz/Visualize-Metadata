@@ -19,13 +19,14 @@ from enum import Enum
 from functools import partial
 from typing import Dict, Set
 
+from calibre.db.fields import IdentifiersField, ManyToManyField, ManyToOneField, OneToOneField
 from calibre.gui2 import choose_dir
 from calibre.gui2.actions import InterfaceAction
 from calibre.gui2.widgets2 import Dialog
 from calibre.utils.icu import sort_key
 
 from .common_utils import PLUGIN_NAME, current_db, debug_print, get_gui, get_icon
-from .common_utils.librarys import field_name
+from .common_utils.librarys import field_name, get_BookIds_all, get_BookIds_search, get_BookIds_virtual
 from .common_utils.widgets import KeyValueComboBox
 
 PLUGIN_ICON = 'images/plugin.png'
@@ -106,6 +107,40 @@ class VisualizeScope(Enum):
     search = _('Current search')
 
 
+def get_visualize_data(field: str, visualize_scope: VisualizeScope, group_sort: GroupSort) -> Dict[str, int]:
+    db = current_db().new_api
+    field_obj = db.fields[field]
+    
+    if isinstance(field_obj, IdentifiersField):
+        data = {}
+        for k,v in field_obj.table.book_col_map.items():
+            for i,x in v.items():
+                if i not in data:
+                    data[i] = set()
+                data[i].add(k)
+        data[None] = set(db.all_book_ids()).difference(field_obj.table.book_col_map)
+    elif isinstance(field_obj, (ManyToManyField, ManyToOneField)):
+        data = {}
+        for k,v in field_obj.table.id_map.items():
+            data[v] = set(field_obj.table.col_book_map[k])
+        data[None] = set(db.all_book_ids()).difference(field_obj.table.book_col_map)
+    # elif isinstance(field_obj, OneToOneField):
+    #     data = {}
+    else:
+        raise NotImplementedError(_('The type of the field {!r} is not supported.').format(field))
+    
+    if visualize_scope == VisualizeScope.virtual:
+        scope_ids = set(get_BookIds_virtual())
+    elif visualize_scope == VisualizeScope.search:
+        scope_ids = set(get_BookIds_search())
+    else:
+        scope_ids = set(get_BookIds_all())
+    
+    for v in data.values():
+        v.intersection_update(scope_ids)
+    return {k:v for k,v in data.items() if v}
+
+
 class VisualizeMetadataDialog(Dialog):
     TITLE = _('Visualize Metadata')
     last_group_sort: GroupSort = GroupSort.alphabetical_ascending
@@ -177,6 +212,11 @@ class VisualizeMetadataDialog(Dialog):
         if self.field_selected.currentIndex() < 0:
             return
         self.setWindowTitle(self.TITLE + ' :: ' + self.field_selected.currentText())
+        self.data = get_visualize_data(
+            self.field_selected.selected_key(),
+            self.visualize_scope.selected_key(),
+            self.group_sort.selected_key(),
+        )
 
     def export_csv(self):
         file = pick_file_to_export(self.field_selected.selected_key(), 'csv', self)
