@@ -172,7 +172,21 @@ def get_visualize_data(field: str, visualize_scope: VisualizeScope, group_sort: 
     
     for v in data.values():
         v.intersection_update(scope_ids)
-    return {k:len(v) for k,v in data.items() if v}
+    
+    reverse = group_sort in {GroupSort.alphabetical_descending, GroupSort.size_descending}
+    def f(x):
+        return x
+    if group_sort == GroupSort.alphabetical_ascending:
+        def f(kv):
+            return bool(kv[0] is None), sort_key(kv[0] or '')
+    if group_sort == GroupSort.alphabetical_descending:
+        def f(kv):
+            return bool(kv[0] is not None), sort_key(kv[0] or '')
+    if group_sort in {GroupSort.size_ascending, GroupSort.size_descending}:
+        def f(kv):
+            return kv[1], sort_key(kv[0] or '')
+    
+    return dict(sorted(((k, len(v)) for k,v in data.items() if v), key=f, reverse=reverse))
 
 
 COLORS = [
@@ -219,7 +233,7 @@ class QColorWidget(QWidget):
 class VisualizeMetadataDialog(Dialog):
     TITLE = _('Visualize Metadata')
     NO_VALUE = _('no value')
-    last_group_sort: GroupSort = GroupSort.alphabetical_ascending
+    last_group_sort: GroupSort = GroupSort.size_descending
     
     def __init__(self):
         self.data: Dict[str, int] = {}
