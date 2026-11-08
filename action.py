@@ -10,13 +10,40 @@ except NameError:
     pass  # load_translations() added in calibre 1.9
 
 try:
-    from qt.core import QHBoxLayout, QPushButton, QToolButton, QVBoxLayout
+    from qt.core import (
+        QColor,
+        QGridLayout,
+        QHBoxLayout,
+        QLabel,
+        QPalette,
+        QPushButton,
+        QScrollArea,
+        QSizePolicy,
+        QSpacerItem,
+        QToolButton,
+        QVBoxLayout,
+        QWidget,
+    )
 except ImportError:
-    from PyQt5.Qt import QHBoxLayout, QPushButton, QToolButton, QVBoxLayout
+    from PyQt5.Qt import (
+        QColor,
+        QGridLayout,
+        QHBoxLayout,
+        QLabel,
+        QPalette,
+        QPushButton,
+        QScrollArea,
+        QSizePolicy,
+        QSpacerItem,
+        QToolButton,
+        QVBoxLayout,
+        QWidget,
+    )
 
 import os
 from enum import Enum
 from functools import partial
+from itertools import cycle
 from typing import Dict, Set
 
 from calibre.db.fields import IdentifiersField, ManyToManyField, ManyToOneField, OneToOneField
@@ -74,6 +101,13 @@ def pick_file_to_export(field: str, ext: str, parent=None) -> str:
     if not dir:
         return
     return os.path.join(dir, f'visualize_export_{field}.{ext}')
+
+
+def item_style(item: QWidget, *, bold: bool=False, italic: bool=False):
+    font = item.font()
+    font.setBold(bold)
+    font.setItalic(italic)
+    item.setFont(font)
 
 
 def get_analyze_fields() -> Set[str]:
@@ -141,8 +175,50 @@ def get_visualize_data(field: str, visualize_scope: VisualizeScope, group_sort: 
     return {k:len(v) for k,v in data.items() if v}
 
 
+COLORS = [
+    QColor('#3366CC'),
+    QColor('#DC3912'),
+    QColor('#FF9900'),
+    QColor('#109618'),
+    QColor('#990099'),
+    QColor('#0099C6'),
+    QColor('#DD4477'),
+    QColor('#66AA00'),
+    QColor('#B82E2E'),
+    QColor('#316395'),
+    QColor('#994499'),
+    QColor('#22AA99'),
+    QColor('#AAAA11'),
+    QColor('#6633CC'),
+    QColor('#16D620'),
+    QColor('#FF6666'),
+    QColor('#66CCFF'),
+    QColor('#FF33FF'),
+    QColor('#666600'),
+    QColor('#FF00CC'),
+    QColor('#0033FF'),
+    QColor('#000033'),
+    QColor('#99FF33'),
+    QColor('#9999FF'),
+    QColor('#006600'),
+    QColor('#FFFFCC'),
+]
+
+
+class QColorWidget(QWidget):
+    def __init__(self, color: QColor, parent=None):
+        QWidget.__init__(self)
+        self.color = color
+        pal = self.palette()
+        pal.setColor(QPalette.ColorRole.Base, color)
+        pal.setColor(QPalette.ColorRole.Window, color)
+        self.setPalette(pal)
+        self.setAutoFillBackground(True)
+
+
 class VisualizeMetadataDialog(Dialog):
     TITLE = _('Visualize Metadata')
+    NO_VALUE = _('no value')
     last_group_sort: GroupSort = GroupSort.alphabetical_ascending
     
     def __init__(self):
@@ -200,7 +276,19 @@ class VisualizeMetadataDialog(Dialog):
         h.addWidget(json)
         h.addStretch()
         
-        l.addStretch()
+        h = QHBoxLayout()
+        l.addLayout(h)
+        sa = QScrollArea(self)
+        sa.setFixedWidth(260)
+        
+        h.addStretch()
+        h.addWidget(sa)
+        
+        scroll = QWidget()
+        sa.setWidget(scroll)
+        sa.setWidgetResizable(True)
+        self.legends = QGridLayout()
+        scroll.setLayout(self.legends)
 
     def group_sort_changed(self):
         VisualizeMetadataDialog.last_group_sort = self.group_sort.selected_key()
@@ -217,6 +305,29 @@ class VisualizeMetadataDialog(Dialog):
             self.visualize_scope.selected_key(),
             self.group_sort.selected_key(),
         )
+        
+        wl = self.legends.takeAt(0)
+        while wl:
+            w = wl.widget()
+            if w:
+                w.setParent(None)
+            wl.invalidate()
+            self.legends.removeItem(wl)
+            wl = self.legends.takeAt(0)
+        
+        for r,(c,(k,v)) in enumerate(zip(cycle(COLORS), self.data.items())):
+            color = QColorWidget(c)
+            color.setFixedSize(20, 20)
+            self.legends.addWidget(color, r, 0)
+            self.legends.addWidget(QLabel(str(v)), r, 1)
+            if not k:
+                l = QLabel(self.NO_VALUE)
+                item_style(l, italic=True)
+            else:
+                l = QLabel(k)
+            self.legends.addWidget(l, r, 2)
+        spacer = QSpacerItem(1, 1, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.legends.addItem(spacer, r+1, 3)
 
     def export_csv(self):
         file = pick_file_to_export(self.field_selected.selected_key(), 'csv', self)
