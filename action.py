@@ -138,7 +138,7 @@ def get_visualize_data(field: str, visualize_scope: VisualizeScope, group_sort: 
     
     for v in data.values():
         v.intersection_update(scope_ids)
-    return {k:v for k,v in data.items() if v}
+    return {k:len(v) for k,v in data.items() if v}
 
 
 class VisualizeMetadataDialog(Dialog):
