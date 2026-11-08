@@ -82,9 +82,11 @@ def get_analyze_fields() -> Set[str]:
     fields = set()
     fields.update(fm.displayable_field_keys())
     fields.update(fm.custom_field_keys(False))
-    fields.difference_update(('id', 'path', 'uuid'))
+    fields.difference_update(('id', 'path', 'uuid', 'comments'))
     fields.difference_update(('title', 'title_sort', 'sort', 'author_sort'))
     for field in fields:
+        if fm[field]['datatype'] == 'composite':
+            continue
         if fm[field]['datatype'] == 'comments':
             continue
         rslt.add(field)
