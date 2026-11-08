@@ -14,10 +14,12 @@ try:
 except ImportError:
     from PyQt5.Qt import QHBoxLayout, QPushButton, QToolButton, QVBoxLayout
 
+import os
 from enum import Enum
 from functools import partial
-from typing import Set
+from typing import Dict, Set
 
+from calibre.gui2 import choose_dir
 from calibre.gui2.actions import InterfaceAction
 from calibre.gui2.widgets2 import Dialog
 from calibre.utils.icu import sort_key
@@ -60,11 +62,17 @@ class VisualizeMetadataAction(InterfaceAction):
         d.show()
 
 
-class GroupSort(Enum):
-    alphabetical_ascending = _('Alphabetical (ascending)')
-    alphabetical_descending = _('Alphabetical (descending)')
-    size_ascending = _('Size (ascending)')
-    size_descending = _('Size (descending)')
+def pick_file_to_export(field: str, ext: str, parent=None) -> str:
+    EXT = ext.upper()
+    ext = ext.lower()
+    dir = choose_dir(
+        name=f'{ext} dialog',
+        title=_('Select folder to export the {} file…').format(EXT),
+        window=parent,
+    )
+    if not dir:
+        return
+    return os.path.join(dir, f'visualize_export_{field}.{ext}')
 
 
 def get_analyze_fields() -> Set[str]:
@@ -83,11 +91,19 @@ def get_analyze_fields() -> Set[str]:
     return rslt
 
 
+class GroupSort(Enum):
+    alphabetical_ascending = _('Alphabetical (ascending)')
+    alphabetical_descending = _('Alphabetical (descending)')
+    size_ascending = _('Size (ascending)')
+    size_descending = _('Size (descending)')
+
+
 class VisualizeMetadataDialog(Dialog):
     TITLE = _('Visualize Metadata')
     last_group_sort: GroupSort = GroupSort.alphabetical_ascending
     
     def __init__(self):
+        self.data: Dict[str, int] = {}
         Dialog.__init__(self,
             title=self.TITLE,
             name='plugin.VisualizeMetadata:VisualizeMetadataDialog',
@@ -152,7 +168,20 @@ class VisualizeMetadataDialog(Dialog):
         self.setWindowTitle(self.TITLE + ' :: ' + self.field_selected.currentText())
 
     def export_csv(self):
-        pass
+        file = pick_file_to_export(self.field_selected.selected_key(), 'csv', self)
+        if not file:
+            return
+        with open(file, 'wt', newline='\n', encoding='utf-8') as f:
+            f.write('\ufeff')  # UTF-8 BOM
+            field_name = self.field_selected.currentText().replace('"', '""')
+            f.write('"{}","{}"\n'.format(field_name, 'Count'))
+            for k,v in self.data.items():
+                f.write('"{}",{}\n'.format(k.replace('"', '""'), v))
 
     def export_json(self):
-        pass
+        import json
+        file = pick_file_to_export(self.field_selected.selected_key(), 'json', self)
+        if not file:
+            return
+        with open(file, 'wt', newline='\n', encoding='utf-8') as f:
+            json.dump(self.data, f, ensure_ascii=False, indent=2)
