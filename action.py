@@ -98,6 +98,12 @@ class GroupSort(Enum):
     size_descending = _('Size (descending)')
 
 
+class VisualizeScope(Enum):
+    library = _('Entire library')
+    virtual = _('Virtual library')
+    search = _('Current search')
+
+
 class VisualizeMetadataDialog(Dialog):
     TITLE = _('Visualize Metadata')
     last_group_sort: GroupSort = GroupSort.alphabetical_ascending
@@ -121,9 +127,11 @@ class VisualizeMetadataDialog(Dialog):
             ((n,field_name(n, fm)) for n in get_analyze_fields()),
             key=lambda x:sort_key(x[1]),
         ))
+        visualize_scope = {n:n._value_ for n in VisualizeScope._member_map_.values()}
         self.field_selected = KeyValueComboBox(analyze_fields, parent=self)
         self.field_selected.setCurrentIndex(-1)
         self.field_selected.currentIndexChanged.connect(self.field_changed)
+        self.visualize_scope = KeyValueComboBox(visualize_scope, parent=self)
         self.button_reload = QPushButton(get_icon('view-refresh.png'), '', self)
         self.button_reload.setToolTip(_('Refresh the visualization'))
         self.button_reload.clicked.connect(self.refresh)
@@ -131,6 +139,7 @@ class VisualizeMetadataDialog(Dialog):
         h = QHBoxLayout()
         l.addLayout(h)
         h.addWidget(self.field_selected)
+        h.addWidget(self.visualize_scope)
         h.addWidget(self.button_reload)
         h.addStretch()
         
