@@ -21,6 +21,7 @@ try:
         QScrollArea,
         QSizePolicy,
         QSpacerItem,
+        Qt,
         QToolButton,
         QVBoxLayout,
         QWidget,
@@ -37,6 +38,7 @@ except ImportError:
         QScrollArea,
         QSizePolicy,
         QSpacerItem,
+        Qt,
         QToolButton,
         QVBoxLayout,
         QWidget,
@@ -47,7 +49,6 @@ from collections import defaultdict
 from datetime import datetime
 from enum import Enum
 from functools import partial
-from itertools import cycle
 from typing import Dict, Set, Union
 
 from calibre.db.fields import IdentifiersField, ManyToManyField, ManyToOneField, OneToOneField
@@ -58,6 +59,7 @@ from calibre.gui2.widgets2 import Dialog
 from calibre.utils.date import is_date_undefined
 from calibre.utils.icu import sort_key
 
+from .charts import NO_VALUE, ViewChartWidget
 from .common_utils import PLUGIN_NAME, current_db, debug_print, get_gui, get_icon
 from .common_utils.librarys import field_name, get_BookIds_all, get_BookIds_search, get_BookIds_virtual
 from .common_utils.widgets import KeyValueComboBox
@@ -255,36 +257,6 @@ def group_visualize_data(
     return dict(sorted(((k, sum(v)) for k,v in rslt.items() if v), key=f, reverse=reverse))
 
 
-COLORS = [
-    QColor('#3366CC'),
-    QColor('#DC3912'),
-    QColor('#FF9900'),
-    QColor('#109618'),
-    QColor('#990099'),
-    QColor('#0099C6'),
-    QColor('#DD4477'),
-    QColor('#66AA00'),
-    QColor('#B82E2E'),
-    QColor('#316395'),
-    QColor('#994499'),
-    QColor('#22AA99'),
-    QColor('#AAAA11'),
-    QColor('#6633CC'),
-    QColor('#16D620'),
-    QColor('#FF6666'),
-    QColor('#66CCFF'),
-    QColor('#FF33FF'),
-    QColor('#666600'),
-    QColor('#FF00CC'),
-    QColor('#0033FF'),
-    QColor('#000033'),
-    QColor('#99FF33'),
-    QColor('#9999FF'),
-    QColor('#006600'),
-    QColor('#FFFFCC'),
-]
-
-
 class QColorWidget(QWidget):
     def __init__(self, color: QColor, parent=None):
         QWidget.__init__(self)
@@ -298,8 +270,6 @@ class QColorWidget(QWidget):
 
 class VisualizeMetadataDialog(Dialog):
     TITLE = _('Visualize Metadata')
-    NO_VALUE = _('no value')
-    NO_VALUE2 = f'<{NO_VALUE}>'
     last_group_sort: GroupSort = GroupSort.size_descending
     last_date_group: DateGroup = DateGroup.day
     
@@ -378,7 +348,9 @@ class VisualizeMetadataDialog(Dialog):
         sa = QScrollArea(self)
         sa.setFixedWidth(260)
         
-        h.addStretch()
+        self.chart = ViewChartWidget(parent=self)
+        self.chart.setMinimumSize(10, 10)
+        h.addWidget(self.chart)
         h.addWidget(sa)
         
         scroll = QWidget()
@@ -426,20 +398,22 @@ class VisualizeMetadataDialog(Dialog):
             self.legends.removeItem(wl)
             wl = self.legends.takeAt(0)
         
+        self.chart.clear()
+        self.chart.addDatas(self.data.items())
         r = self.legends.rowCount()
-        for c,(k,v) in zip(cycle(COLORS), self.data.items()):
+        for data in self.chart.values:
             r = self.legends.rowCount()
-            color = QColorWidget(c)
+            color = QColorWidget(data.color)
             color.setFixedSize(20, 20)
             self.legends.addWidget(color, r, 0)
-            l = QLabel(str(v))
+            l = QLabel(str(data.count))
             l.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
             self.legends.addWidget(l, r, 1)
-            if not k:
-                l = QLabel(self.NO_VALUE)
+            if not data.name:
+                l = QLabel(NO_VALUE)
                 item_style(l, italic=True)
             else:
-                l = QLabel(k)
+                l = QLabel(data.name)
             l.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
             self.legends.addWidget(l, r, 2)
         spacer = QSpacerItem(1, 1, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -451,13 +425,14 @@ class VisualizeMetadataDialog(Dialog):
         file = pick_file_to_export(self.field_selected.selected_key(), 'csv', self)
         if not file:
             return
-        with open(file, 'wt', newline='\n', encoding='utf-8') as f:
+        no_value = f'<{NO_VALUE}>'
+        with open(file, 't', newline='\n', encoding='utf-8') as f:
             f.write('\ufeff')  # UTF-8 BOM
             field_name = self.field_selected.currentText().replace('"', '""')
             f.write('"{}","{}"\n'.format('Count', field_name))
             for k,v in self.data.items():
                 if k is None:
-                    k = self.NO_VALUE2
+                    k = no_value
                 f.write('{},"{}"\n'.format(v, k.replace('"', '""')))
 
     def export_json(self):
@@ -467,6 +442,7 @@ class VisualizeMetadataDialog(Dialog):
         file = pick_file_to_export(self.field_selected.selected_key(), 'json', self)
         if not file:
             return
-        data = {(self.NO_VALUE2 if k is None else k):v for k,v in self.data.items()}
-        with open(file, 'wt', newline='\n', encoding='utf-8') as f:
+        no_value = f'<{NO_VALUE}>'
+        data = {(no_value if k is None else k):v for k,v in self.data.items()}
+        with open(file, 't', newline='\n', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
