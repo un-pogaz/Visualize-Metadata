@@ -11,6 +11,7 @@ except NameError:
 
 try:
     from qt.core import (
+        QCheckBox,
         QColor,
         QGridLayout,
         QHBoxLayout,
@@ -26,6 +27,7 @@ try:
     )
 except ImportError:
     from PyQt5.Qt import (
+        QCheckBox,
         QColor,
         QGridLayout,
         QHBoxLayout,
@@ -154,6 +156,7 @@ def get_visualize_data(
     visualize_scope: VisualizeScope,
     group_sort: GroupSort,
     date_group: DateGroup,
+    exclude_none: bool,
 ) -> Dict[str, int]:
     db = current_db().new_api
     field_obj = db.fields[field]
@@ -211,6 +214,9 @@ def get_visualize_data(
     
     for v in data.values():
         v.intersection_update(scope_ids)
+    
+    if exclude_none:
+        data.pop(None, None)
     
     reverse = group_sort in {GroupSort.alphabetical_descending, GroupSort.size_descending}
     def key(k):
@@ -329,11 +335,14 @@ class VisualizeMetadataDialog(Dialog):
         self.date_group.currentIndexChanged.connect(self.group_changed)
         self.date_group.setVisible(False)
         
+        self.exclude_none = QCheckBox(_('Exclude books without value'), self)
+        
         h = QHBoxLayout()
         l.addLayout(h)
         h.addWidget(self.group_sort)
         h.addWidget(self.label_group)
         h.addWidget(self.date_group)
+        h.addWidget(self.exclude_none)
         h.addStretch()
         
         csv = QPushButton('Export CSV', self)
@@ -381,6 +390,7 @@ class VisualizeMetadataDialog(Dialog):
             visualize_scope=self.visualize_scope.selected_key(),
             group_sort=self.group_sort.selected_key(),
             date_group=self.date_group.selected_key(),
+            exclude_none=self.exclude_none.isChecked(),
         )
         
         wl = self.legends.takeAt(0)
