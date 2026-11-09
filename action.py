@@ -338,17 +338,18 @@ class VisualizeMetadataDialog(Dialog):
         
         group_sort = {n:n._value_ for n in GroupSort._member_map_.values()}
         self.group_sort = KeyValueComboBox(group_sort, selected_key=self.last_group_sort, parent=self)
-        self.group_sort.currentIndexChanged.connect(self.group_changed)
+        self.group_sort.currentIndexChanged.connect(self.refresh)
         
         self.label_group = QLabel(_('Group by:'), self)
         self.label_group.setVisible(False)
         
         date_group = {n:n._value_ for n in DateGroup._member_map_.values()}
         self.date_group = KeyValueComboBox(date_group, selected_key=self.last_date_group, parent=self)
-        self.date_group.currentIndexChanged.connect(self.group_changed)
+        self.date_group.currentIndexChanged.connect(self.refresh)
         self.date_group.setVisible(False)
         
         self.exclude_none = QCheckBox(_('Exclude books without value'), self)
+        self.exclude_none.checkStateChanged.connect(self.refresh)
         
         h = QHBoxLayout()
         l.addLayout(h)
@@ -383,10 +384,6 @@ class VisualizeMetadataDialog(Dialog):
         self.legends = QGridLayout()
         scroll.setLayout(self.legends)
 
-    def group_changed(self):
-        VisualizeMetadataDialog.last_group_sort = self.group_sort.selected_key()
-        VisualizeMetadataDialog.last_date_group = self.date_group.selected_key()
-
     def field_changed(self):
         db = current_db()
         fm = db.field_metadata
@@ -405,6 +402,8 @@ class VisualizeMetadataDialog(Dialog):
         self.refresh()
 
     def refresh(self):
+        VisualizeMetadataDialog.last_group_sort = self.group_sort.selected_key()
+        VisualizeMetadataDialog.last_date_group = self.date_group.selected_key()
         if self.field_selected.currentIndex() < 0:
             return
         self.data = group_visualize_data(
