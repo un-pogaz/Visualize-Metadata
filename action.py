@@ -415,11 +415,11 @@ class VisualizeMetadataDialog(Dialog):
         with open(file, 'wt', newline='\n', encoding='utf-8') as f:
             f.write('\ufeff')  # UTF-8 BOM
             field_name = self.field_selected.currentText().replace('"', '""')
-            f.write('"{}","{}"\n'.format(field_name, 'Count'))
+            f.write('"{}","{}"\n'.format('Count', field_name))
             for k,v in self.data.items():
                 if k is None:
                     k = self.NO_VALUE2
-                f.write('"{}",{}\n'.format(k.replace('"', '""'), v))
+                f.write('{},"{}"\n'.format(v, k.replace('"', '""')))
 
     def export_json(self):
         import json
