@@ -120,9 +120,7 @@ def get_analyze_fields() -> Set[str]:
     fields.difference_update(('id', 'path', 'uuid', 'comments'))
     fields.difference_update(('title', 'title_sort', 'sort', 'author_sort'))
     for field in fields:
-        if fm[field]['datatype'] == 'composite':
-            continue
-        if fm[field]['datatype'] == 'comments':
+        if fm[field]['datatype'] in {'composite', 'comments', 'int', 'float'}:
             continue
         rslt.add(field)
     return rslt
