@@ -55,6 +55,7 @@ from calibre.ebooks.metadata import rating_to_stars
 from calibre.gui2 import choose_dir
 from calibre.gui2.actions import InterfaceAction
 from calibre.gui2.widgets2 import Dialog
+from calibre.utils.date import is_date_undefined
 from calibre.utils.icu import sort_key
 
 from .common_utils import PLUGIN_NAME, current_db, debug_print, get_gui, get_icon
@@ -219,6 +220,8 @@ def group_visualize_data(
             fmt += ' %H:%M'
         
         def f(x):
+            if is_date_undefined(x):
+                return None
             return x.strftime(fmt).lstrip('0')
     
     for k,v in data.items():
