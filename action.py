@@ -174,17 +174,19 @@ def get_visualize_data(field: str, visualize_scope: VisualizeScope, group_sort: 
         v.intersection_update(scope_ids)
     
     reverse = group_sort in {GroupSort.alphabetical_descending, GroupSort.size_descending}
+    def key(k):
+        return sort_key(k or '')
     def f(x):
         return x
     if group_sort == GroupSort.alphabetical_ascending:
         def f(kv):
-            return bool(kv[0] is None), sort_key(kv[0] or '')
+            return bool(kv[0] is None), key(kv[0])
     if group_sort == GroupSort.alphabetical_descending:
         def f(kv):
-            return bool(kv[0] is not None), sort_key(kv[0] or '')
+            return bool(kv[0] is not None), key(kv[0])
     if group_sort in {GroupSort.size_ascending, GroupSort.size_descending}:
         def f(kv):
-            return kv[1], sort_key(kv[0] or '')
+            return kv[1], key(kv[0])
     
     return dict(sorted(((k, len(v)) for k,v in data.items() if v), key=f, reverse=reverse))
 
