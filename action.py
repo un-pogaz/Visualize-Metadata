@@ -47,6 +47,7 @@ from itertools import cycle
 from typing import Dict, Set
 
 from calibre.db.fields import IdentifiersField, ManyToManyField, ManyToOneField, OneToOneField
+from calibre.ebooks.metadata import rating_to_stars
 from calibre.gui2 import choose_dir
 from calibre.gui2.actions import InterfaceAction
 from calibre.gui2.widgets2 import Dialog
@@ -142,6 +143,13 @@ class VisualizeScope(Enum):
 def get_visualize_data(field: str, visualize_scope: VisualizeScope, group_sort: GroupSort) -> Dict[str, int]:
     db = current_db().new_api
     field_obj = db.fields[field]
+    fm = field_obj.table.metadata
+    def f(x):
+        return x
+    if fm['datatype'] == 'rating':
+        allow_half_stars = bool(fm['display'].get('allow_half_stars'))
+        def f(x):
+            return rating_to_stars(x, allow_half_stars=allow_half_stars)
     
     if isinstance(field_obj, IdentifiersField):
         data = {}
@@ -154,7 +162,7 @@ def get_visualize_data(field: str, visualize_scope: VisualizeScope, group_sort: 
     elif isinstance(field_obj, (ManyToManyField, ManyToOneField)):
         data = {}
         for k,v in field_obj.table.id_map.items():
-            data[v] = set(field_obj.table.col_book_map[k])
+            data[f(v)] = set(field_obj.table.col_book_map[k])
         data[None] = set(db.all_book_ids()).difference(field_obj.table.book_col_map)
     # elif isinstance(field_obj, OneToOneField):
     #     data = {}
@@ -173,7 +181,11 @@ def get_visualize_data(field: str, visualize_scope: VisualizeScope, group_sort: 
     
     reverse = group_sort in {GroupSort.alphabetical_descending, GroupSort.size_descending}
     def key(k):
-        return sort_key(k or '')
+        if not k:
+            return
+        if fm['datatype'] == 'rating':
+            return k.count('★'), k.count('⯨')
+        return sort_key(k)
     def f(x):
         return x
     if group_sort == GroupSort.alphabetical_ascending:
