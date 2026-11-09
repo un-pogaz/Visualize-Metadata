@@ -432,12 +432,15 @@ class VisualizeMetadataDialog(Dialog):
             color = QColorWidget(c)
             color.setFixedSize(20, 20)
             self.legends.addWidget(color, r, 0)
-            self.legends.addWidget(QLabel(str(v)), r, 1)
+            l = QLabel(str(v))
+            l.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
+            self.legends.addWidget(l, r, 1)
             if not k:
                 l = QLabel(self.NO_VALUE)
                 item_style(l, italic=True)
             else:
                 l = QLabel(k)
+            l.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
             self.legends.addWidget(l, r, 2)
         spacer = QSpacerItem(1, 1, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.legends.addItem(spacer, r+1, 3)
