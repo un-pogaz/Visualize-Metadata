@@ -99,6 +99,8 @@ class PieChart(Chart):
             v = d.count / vtotal
             painter.setBrush(QColor(d.color))
             span_angle = round(v * -360.0 * 16)
+            if span_angle >= 0:  # skip empty slices
+                continue
             painter.drawPie(rect,                                # overlap to avoid weird edge
                 start_angle + (overlap if first_slice else 0),   # backward overlap (overide by the last)
                 span_angle - overlap*(2 if first_slice else 1),  # frontward overlap (overide by the next)
