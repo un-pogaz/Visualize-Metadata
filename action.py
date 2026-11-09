@@ -44,10 +44,11 @@ except ImportError:
 
 import os
 from collections import defaultdict
+from datetime import datetime
 from enum import Enum
 from functools import partial
 from itertools import cycle
-from typing import Dict, Set
+from typing import Dict, Set, Union
 
 from calibre.db.fields import IdentifiersField, ManyToManyField, ManyToOneField, OneToOneField
 from calibre.ebooks.metadata import rating_to_stars
@@ -151,9 +152,44 @@ class DateGroup(Enum):
     minute = _('Minute')
 
 
-def get_visualize_data(
+def get_visualize_data(field: str, visualize_scope: VisualizeScope) -> Dict[Union[str, bool, datetime, int], int]:
+    db = current_db().new_api
+    field_obj = db.fields[field]
+    rslt = defaultdict(set)
+    if isinstance(field_obj, IdentifiersField):
+        for k,v in field_obj.table.book_col_map.items():
+            for i,x in v.items():
+                if i not in rslt:
+                    rslt[i] = set()
+                rslt[i].add(k)
+        rslt[None] = set(db.all_book_ids()).difference(field_obj.table.book_col_map)
+    elif isinstance(field_obj, (ManyToManyField, ManyToOneField)):
+        for k,v in field_obj.table.id_map.items():
+            rslt[v] = set(field_obj.table.col_book_map[k])
+        rslt[None] = set(db.all_book_ids()).difference(field_obj.table.book_col_map)
+    elif isinstance(field_obj, OneToOneField):
+        for k,v in field_obj.table.book_col_map.items():
+            rslt[v].add(k)
+        rslt[None] = set(db.all_book_ids()).difference(field_obj.table.book_col_map)
+    else:
+        raise NotImplementedError(_('The type of the field {!r} is not supported.').format(field))
+    
+    if visualize_scope == VisualizeScope.virtual:
+        scope_ids = set(get_BookIds_virtual())
+    elif visualize_scope == VisualizeScope.search:
+        scope_ids = set(get_BookIds_search())
+    else:
+        scope_ids = set(get_BookIds_all())
+    
+    for v in rslt.values():
+        v.intersection_update(scope_ids)
+    
+    return {k:len(v) for k,v in rslt.items() if v}
+
+
+def group_visualize_data(
     field: str,
-    visualize_scope: VisualizeScope,
+    data: Dict[Union[str, bool, datetime, int], int],
     group_sort: GroupSort,
     date_group: DateGroup,
     exclude_none: bool,
@@ -161,6 +197,7 @@ def get_visualize_data(
     db = current_db().new_api
     field_obj = db.fields[field]
     fm = field_obj.table.metadata
+    rslt = defaultdict(set)
     def f(x):
         return x
     if fm['datatype'] == 'rating':
@@ -184,39 +221,14 @@ def get_visualize_data(
         def f(x):
             return x.strftime(fmt).lstrip('0')
     
-    if isinstance(field_obj, IdentifiersField):
-        data = {}
-        for k,v in field_obj.table.book_col_map.items():
-            for i,x in v.items():
-                if i not in data:
-                    data[i] = set()
-                data[i].add(k)
-        data[None] = set(db.all_book_ids()).difference(field_obj.table.book_col_map)
-    elif isinstance(field_obj, (ManyToManyField, ManyToOneField)):
-        data = {}
-        for k,v in field_obj.table.id_map.items():
-            data[f(v)] = set(field_obj.table.col_book_map[k])
-        data[None] = set(db.all_book_ids()).difference(field_obj.table.book_col_map)
-    elif isinstance(field_obj, OneToOneField):
-        data = defaultdict(set)
-        for k,v in field_obj.table.book_col_map.items():
-            data[f(v)].add(k)
-        data[None] = set(db.all_book_ids()).difference(field_obj.table.book_col_map)
-    else:
-        raise NotImplementedError(_('The type of the field {!r} is not supported.').format(field))
-    
-    if visualize_scope == VisualizeScope.virtual:
-        scope_ids = set(get_BookIds_virtual())
-    elif visualize_scope == VisualizeScope.search:
-        scope_ids = set(get_BookIds_search())
-    else:
-        scope_ids = set(get_BookIds_all())
-    
-    for v in data.values():
-        v.intersection_update(scope_ids)
+    for k,v in data.items():
+        if k is None:
+            rslt[k].add(v)
+            continue
+        rslt[f(k)].add(v)
     
     if exclude_none:
-        data.pop(None, None)
+        rslt.pop(None, None)
     
     reverse = group_sort in {GroupSort.alphabetical_descending, GroupSort.size_descending}
     def key(k):
@@ -237,7 +249,7 @@ def get_visualize_data(
         def f(kv):
             return kv[1], key(kv[0])
     
-    return dict(sorted(((k, len(v)) for k,v in data.items() if v), key=f, reverse=reverse))
+    return dict(sorted(((k, sum(v)) for k,v in rslt.items() if v), key=f, reverse=reverse))
 
 
 COLORS = [
@@ -289,6 +301,7 @@ class VisualizeMetadataDialog(Dialog):
     last_date_group: DateGroup = DateGroup.day
     
     def __init__(self):
+        self.raw_data: Dict[Union[str, bool, datetime, int], int] = {}
         self.data: Dict[str, int] = {}
         Dialog.__init__(self,
             title=self.TITLE,
@@ -314,7 +327,7 @@ class VisualizeMetadataDialog(Dialog):
         self.visualize_scope = KeyValueComboBox(visualize_scope, parent=self)
         self.button_reload = QPushButton(get_icon('view-refresh.png'), '', self)
         self.button_reload.setToolTip(_('Refresh the visualization'))
-        self.button_reload.clicked.connect(self.refresh)
+        self.button_reload.clicked.connect(self.load_data)
         
         h = QHBoxLayout()
         l.addLayout(h)
@@ -381,13 +394,22 @@ class VisualizeMetadataDialog(Dialog):
         self.label_group.setVisible(fm['datatype'] == 'datetime')
         self.date_group.setVisible(fm['datatype'] == 'datetime')
 
-    def refresh(self):
+    def load_data(self):
         if self.field_selected.currentIndex() < 0:
             return
         self.setWindowTitle(self.TITLE + ' :: ' + self.field_selected.currentText())
-        self.data = get_visualize_data(
+        self.raw_data = get_visualize_data(
             field=self.field_selected.selected_key(),
             visualize_scope=self.visualize_scope.selected_key(),
+        )
+        self.refresh()
+
+    def refresh(self):
+        if self.field_selected.currentIndex() < 0:
+            return
+        self.data = group_visualize_data(
+            field=self.field_selected.selected_key(),
+            data=self.raw_data,
             group_sort=self.group_sort.selected_key(),
             date_group=self.date_group.selected_key(),
             exclude_none=self.exclude_none.isChecked(),
@@ -402,7 +424,9 @@ class VisualizeMetadataDialog(Dialog):
             self.legends.removeItem(wl)
             wl = self.legends.takeAt(0)
         
-        for r,(c,(k,v)) in enumerate(zip(cycle(COLORS), self.data.items())):
+        r = self.legends.rowCount()
+        for c,(k,v) in zip(cycle(COLORS), self.data.items()):
+            r = self.legends.rowCount()
             color = QColorWidget(c)
             color.setFixedSize(20, 20)
             self.legends.addWidget(color, r, 0)
