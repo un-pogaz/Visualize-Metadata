@@ -41,6 +41,7 @@ except ImportError:
     )
 
 import os
+from collections import defaultdict
 from enum import Enum
 from functools import partial
 from itertools import cycle
@@ -140,7 +141,20 @@ class VisualizeScope(Enum):
     search = _('Current search')
 
 
-def get_visualize_data(field: str, visualize_scope: VisualizeScope, group_sort: GroupSort) -> Dict[str, int]:
+class DateGroup(Enum):
+    year = _('Year')
+    month = _('Month')
+    day = _('Day')
+    hour = _('Hour')
+    minute = _('Minute')
+
+
+def get_visualize_data(
+    field: str,
+    visualize_scope: VisualizeScope,
+    group_sort: GroupSort,
+    date_group: DateGroup,
+) -> Dict[str, int]:
     db = current_db().new_api
     field_obj = db.fields[field]
     fm = field_obj.table.metadata
@@ -150,6 +164,22 @@ def get_visualize_data(field: str, visualize_scope: VisualizeScope, group_sort: 
         allow_half_stars = bool(fm['display'].get('allow_half_stars'))
         def f(x):
             return rating_to_stars(x, allow_half_stars=allow_half_stars)
+    if fm['datatype'] == 'bool':
+        def f(x):
+            return _('Yes') if x else _('No')
+    if fm['datatype'] == 'datetime':
+        fmt = '%Y'
+        if date_group not in {DateGroup.year,}:
+            fmt += '/%m'
+        if date_group not in {DateGroup.year, DateGroup.month}:
+            fmt += '/%d'
+        if date_group == DateGroup.hour:
+            fmt += ' %H:00'
+        if date_group == DateGroup.minute:
+            fmt += ' %H:%M'
+        
+        def f(x):
+            return x.strftime(fmt).lstrip('0')
     
     if isinstance(field_obj, IdentifiersField):
         data = {}
@@ -164,8 +194,11 @@ def get_visualize_data(field: str, visualize_scope: VisualizeScope, group_sort: 
         for k,v in field_obj.table.id_map.items():
             data[f(v)] = set(field_obj.table.col_book_map[k])
         data[None] = set(db.all_book_ids()).difference(field_obj.table.book_col_map)
-    # elif isinstance(field_obj, OneToOneField):
-    #     data = {}
+    elif isinstance(field_obj, OneToOneField):
+        data = defaultdict(set)
+        for k,v in field_obj.table.book_col_map.items():
+            data[f(v)].add(k)
+        data[None] = set(db.all_book_ids()).difference(field_obj.table.book_col_map)
     else:
         raise NotImplementedError(_('The type of the field {!r} is not supported.').format(field))
     
@@ -247,6 +280,7 @@ class VisualizeMetadataDialog(Dialog):
     NO_VALUE = _('no value')
     NO_VALUE2 = f'<{NO_VALUE}>'
     last_group_sort: GroupSort = GroupSort.size_descending
+    last_date_group: DateGroup = DateGroup.day
     
     def __init__(self):
         self.data: Dict[str, int] = {}
@@ -285,11 +319,21 @@ class VisualizeMetadataDialog(Dialog):
         
         group_sort = {n:n._value_ for n in GroupSort._member_map_.values()}
         self.group_sort = KeyValueComboBox(group_sort, selected_key=self.last_group_sort, parent=self)
-        self.group_sort.currentIndexChanged.connect(self.group_sort_changed)
+        self.group_sort.currentIndexChanged.connect(self.group_changed)
+        
+        self.label_group = QLabel(_('Group by:'), self)
+        self.label_group.setVisible(False)
+        
+        date_group = {n:n._value_ for n in DateGroup._member_map_.values()}
+        self.date_group = KeyValueComboBox(date_group, selected_key=self.last_date_group, parent=self)
+        self.date_group.currentIndexChanged.connect(self.group_changed)
+        self.date_group.setVisible(False)
         
         h = QHBoxLayout()
         l.addLayout(h)
         h.addWidget(self.group_sort)
+        h.addWidget(self.label_group)
+        h.addWidget(self.date_group)
         h.addStretch()
         
         csv = QPushButton('Export CSV', self)
@@ -317,20 +361,26 @@ class VisualizeMetadataDialog(Dialog):
         self.legends = QGridLayout()
         scroll.setLayout(self.legends)
 
-    def group_sort_changed(self):
+    def group_changed(self):
         VisualizeMetadataDialog.last_group_sort = self.group_sort.selected_key()
+        VisualizeMetadataDialog.last_date_group = self.date_group.selected_key()
 
     def field_changed(self):
-        self.field_selected.selected_key()
+        db = current_db()
+        fm = db.field_metadata
+        fm = fm[self.field_selected.selected_key()]
+        self.label_group.setVisible(fm['datatype'] == 'datetime')
+        self.date_group.setVisible(fm['datatype'] == 'datetime')
 
     def refresh(self):
         if self.field_selected.currentIndex() < 0:
             return
         self.setWindowTitle(self.TITLE + ' :: ' + self.field_selected.currentText())
         self.data = get_visualize_data(
-            self.field_selected.selected_key(),
-            self.visualize_scope.selected_key(),
-            self.group_sort.selected_key(),
+            field=self.field_selected.selected_key(),
+            visualize_scope=self.visualize_scope.selected_key(),
+            group_sort=self.group_sort.selected_key(),
+            date_group=self.date_group.selected_key(),
         )
         
         wl = self.legends.takeAt(0)
