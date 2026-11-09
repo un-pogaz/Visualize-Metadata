@@ -426,7 +426,7 @@ class VisualizeMetadataDialog(Dialog):
         if not file:
             return
         no_value = f'<{NO_VALUE}>'
-        with open(file, 't', newline='\n', encoding='utf-8') as f:
+        with open(file, 'w', newline='\n', encoding='utf-8') as f:
             f.write('\ufeff')  # UTF-8 BOM
             field_name = self.field_selected.currentText().replace('"', '""')
             f.write('"{}","{}"\n'.format('Count', field_name))
@@ -444,5 +444,5 @@ class VisualizeMetadataDialog(Dialog):
             return
         no_value = f'<{NO_VALUE}>'
         data = {(no_value if k is None else k):v for k,v in self.data.items()}
-        with open(file, 't', newline='\n', encoding='utf-8') as f:
+        with open(file, 'w', newline='\n', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
