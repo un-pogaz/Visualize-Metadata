@@ -10,16 +10,15 @@ except NameError:
     pass  # load_translations() added in calibre 1.9
 
 try:
-    from qt.core import QColor, QPainter, QPaintEvent, QRect, Qt, QWidget
+    from qt.core import QColor, QPainter, QPaintEvent, QPen, QRect, Qt, QWidget
 except ImportError:
-    from PyQt5.Qt import QColor, QPainter, QPaintEvent, QRect, Qt, QWidget
+    from PyQt5.Qt import QColor, QPainter, QPaintEvent, QPen, QRect, Qt, QWidget
 
 
 from itertools import cycle
 from typing import Iterable, Iterator, List, NamedTuple, Tuple
 
 NO_VALUE = _('no value')
-
 
 COLORS = [
     QColor('#3366CC'),
@@ -69,6 +68,10 @@ class Chart:
 
 
 class PieChart(Chart):
+    def __init__(self, has_outline: bool=False):
+        Chart.__init__(self)
+        self.has_outline = has_outline
+    
     def draw(self, painter: QPainter, rect: QRect):
         painter.save()
         painter.translate(rect.x(), rect.y())
@@ -76,21 +79,28 @@ class PieChart(Chart):
         size = min(rect.height(), rect.width())
         rect.setHeight(size)
         rect.setWidth(size)
+        
+        # apply outline
+        if self.has_outline:
+            painter.setPen(QPen(Qt.GlobalColor.white, 2))
+            rect.adjust(1, 1, -1, -1)
+            overlap = 0
+        else:
+            painter.setPen(Qt.transparent)
+            overlap = 4
+        
         # draw splices
         ## startAngle and spanAngle must be specified in 1/16th of a degree,
         ## i.e. a full circle equals 5760 (16 * 360)
-        painter.setPen(Qt.transparent)
         vtotal = float(sum(e.count for e in self.data))
         start_angle = offset = 90 * 16
         first_slice = True
-        overlap = 4  # overlap to avoid weird edge
         for d in self.data[:-1]:
             v = d.count / vtotal
             painter.setBrush(QColor(d.color))
             span_angle = round(v * -360.0 * 16)
-            painter.drawPie(
-                rect,
-                start_angle + (overlap if first_slice else 0),  # backward overlap (overide by the last)
+            painter.drawPie(rect,                                # overlap to avoid weird edge
+                start_angle + (overlap if first_slice else 0),   # backward overlap (overide by the last)
                 span_angle - overlap*(2 if first_slice else 1),  # frontward overlap (overide by the next)
             )
             start_angle += span_angle
