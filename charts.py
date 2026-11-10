@@ -82,7 +82,11 @@ class PieChart(Chart):
         
         # apply outline
         if self.has_outline:
-            painter.setPen(QPen(Qt.GlobalColor.white, 2))
+            outline_pen = QPen(Qt.GlobalColor.white, 2)
+            if len(self.view.values) > 1:
+                painter.setPen(outline_pen)
+            else:
+                painter.setPen(Qt.transparent)
             rect.adjust(1, 1, -1, -1)
             overlap = 0
         else:
@@ -98,10 +102,10 @@ class PieChart(Chart):
         first_slice = True
         for d in values[:-1]:
             v = d.count / vtotal
-            painter.setBrush(QColor(d.color))
             span_angle = round(v * -360.0 * 16)
             if span_angle >= 0:  # skip empty slices
                 continue
+            painter.setBrush(d.color)
             painter.drawPie(rect,                                # overlap to avoid weird edge
                 start_angle + (overlap if first_slice else 0),   # backward overlap (overide by the last)
                 span_angle - overlap*(2 if first_slice else 1),  # frontward overlap (overide by the next)
@@ -112,6 +116,12 @@ class PieChart(Chart):
             painter.setBrush(QColor(values[-1].color))
             span_angle = start_angle + 360 * 16 - offset
             painter.drawPie(rect, offset, max(0, span_angle))
+        
+        if self.has_outline and len(self.view.values) == 1:
+            painter.setPen(outline_pen)
+            painter.setBrush(Qt.transparent)
+            painter.drawEllipse(rect.toRectF())
+        
         painter.restore()
 
 
