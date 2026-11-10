@@ -74,9 +74,9 @@ class PieChart(Chart):
     
     def draw(self, painter: QPainter, rect: QRect):
         painter.save()
-        painter.translate(rect.x(), rect.y())
         # ensure square
         size = min(rect.height(), rect.width())
+        rect = QRect(rect)
         rect.setHeight(size)
         rect.setWidth(size)
         
@@ -120,7 +120,7 @@ class ViewChartWidget(QWidget):
     _colors: Iterator[QColor]
     
     def __init__(self, chart: Chart=None, parent=None):
-        QWidget.__init__(self, parent=parent)
+        QWidget.__init__(self, parent)
         self.values: List[ColorData] = []
         self.setChart(chart or PieChart())
         self.clear()
@@ -148,6 +148,13 @@ class ViewChartWidget(QWidget):
         self.update()
 
     def paintEvent(self, event: QPaintEvent):
+        margin = self.contentsMargins()
+        rect = self.rect().adjusted(
+            max(0, margin.left()),
+            max(0, margin.top()),
+            -max(0, margin.right()),
+            -max(0, margin.bottom()),
+        )
         with QPainter(self) as painter:
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-            self.chart.draw(painter, QRect(0, 0, event.rect().width(), event.rect().height()))
+            self.chart.draw(painter, rect)
