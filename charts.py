@@ -58,10 +58,10 @@ class ColorData(NamedTuple):
 
 class Chart:
     def __init__(self):
-        self.data: List[ColorData] = []
+        self.view: ViewChartWidget = None
     
-    def setData(self, data: List[ColorData]):
-        self.data = data.copy()
+    def setView(self, view: 'ViewChartWidget'):
+        self.view = view
     
     def draw(self, painter: QPainter, rect: QRect):
         raise NotImplementedError('draw() need to be overridden in a subclass')
@@ -92,10 +92,11 @@ class PieChart(Chart):
         # draw splices
         ## startAngle and spanAngle must be specified in 1/16th of a degree,
         ## i.e. a full circle equals 5760 (16 * 360)
-        vtotal = float(sum(e.count for e in self.data))
+        values = self.view.values
+        vtotal = float(sum(e.count for e in values))
         start_angle = offset = 90 * 16
         first_slice = True
-        for d in self.data[:-1]:
+        for d in values[:-1]:
             v = d.count / vtotal
             painter.setBrush(QColor(d.color))
             span_angle = round(v * -360.0 * 16)
@@ -107,8 +108,8 @@ class PieChart(Chart):
             )
             start_angle += span_angle
             first_slice = False
-        if self.data:
-            painter.setBrush(QColor(self.data[-1].color))
+        if values:
+            painter.setBrush(QColor(values[-1].color))
             span_angle = start_angle + 360 * 16 - offset
             painter.drawPie(rect, offset, max(0, span_angle))
         painter.restore()
@@ -121,7 +122,7 @@ class ViewChartWidget(QWidget):
     def __init__(self, chart: Chart=None, parent=None):
         QWidget.__init__(self, parent=parent)
         self.values: List[ColorData] = []
-        self.chart = chart or PieChart()
+        self.setChart(chart or PieChart())
         self.clear()
 
     def addData(self, name: str, count: int):
@@ -143,10 +144,10 @@ class ViewChartWidget(QWidget):
 
     def setChart(self, chart: Chart):
         self.chart = chart
+        self.chart.setView(self)
         self.update()
 
     def paintEvent(self, event: QPaintEvent):
         with QPainter(self) as painter:
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-            self.chart.setData(self.values)
             self.chart.draw(painter, QRect(0, 0, event.rect().width(), event.rect().height()))
