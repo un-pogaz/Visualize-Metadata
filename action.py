@@ -353,7 +353,7 @@ class VisualizeMetadataDialog(Dialog):
         l.addWidget(splitter, 1)
         
         sa = QScrollArea(self)
-        sa.setMinimumWidth(100)
+        sa.setMinimumWidth(200)
         
         self.chart = ViewChartWidget(parent=self)
         self.chart.setMinimumSize(10, 10)
