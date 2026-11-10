@@ -21,6 +21,7 @@ try:
         QScrollArea,
         QSizePolicy,
         QSpacerItem,
+        QSplitter,
         Qt,
         QToolButton,
         QVBoxLayout,
@@ -38,6 +39,7 @@ except ImportError:
         QScrollArea,
         QSizePolicy,
         QSpacerItem,
+        QSplitter,
         Qt,
         QToolButton,
         QVBoxLayout,
@@ -343,15 +345,21 @@ class VisualizeMetadataDialog(Dialog):
         h.addWidget(json)
         h.addStretch()
         
-        h = QHBoxLayout()
-        l.addLayout(h)
+        splitter = QSplitter(Qt.Orientation.Horizontal, self)
+        splitter.setOpaqueResize(True)
+        splitter.setHandleWidth(5)
+        splitter.setChildrenCollapsible(False)
+        
+        l.addWidget(splitter, 1)
+        
         sa = QScrollArea(self)
-        sa.setFixedWidth(260)
+        sa.setMinimumWidth(100)
         
         self.chart = ViewChartWidget(parent=self)
         self.chart.setMinimumSize(10, 10)
-        h.addWidget(self.chart)
-        h.addWidget(sa)
+        
+        splitter.addWidget(self.chart)
+        splitter.addWidget(sa)
         
         scroll = QWidget()
         sa.setWidget(scroll)
