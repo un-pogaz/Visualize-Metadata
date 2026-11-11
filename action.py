@@ -279,7 +279,6 @@ class VisualizeMetadataDialog(Dialog):
     def setup_ui(self):
         l = QVBoxLayout(self)
         self.setLayout(l)
-        self.setMinimumSize(500, 400)
         
         db = current_db()
         fm = db.field_metadata
@@ -336,6 +335,7 @@ class VisualizeMetadataDialog(Dialog):
         h.addWidget(csv)
         h.addWidget(json)
         h.addStretch()
+        lsize = l.sizeHint()
         
         splitter = QSplitter(Qt.Orientation.Horizontal, self)
         splitter.setOpaqueResize(True)
@@ -344,15 +344,20 @@ class VisualizeMetadataDialog(Dialog):
         l.addWidget(splitter, 1)
         
         self.chart = ChartViewWidget(parent=self)
-        self.chart.setMinimumSize(10, 10)
+        self.chart.setMinimumSize(400, 400)
         
         self.legends = ChartViewWidget(chart=LegendChart(), parent=self)
-        self.legends.setMinimumSize(10, 10)
+        self.legends.setMinimumSize(160, 10)
         
         splitter.addWidget(self.chart)
         splitter.addWidget(self.legends)
         splitter.setSizes((400, 200))
         self.chart.values = self.legends.values  # make chared reference
+        
+        self.setMinimumSize(
+            40 + self.chart.minimumWidth() + self.legends.minimumWidth(),
+            10 + self.chart.minimumHeight() + lsize.height(),
+        )
 
     def field_changed(self):
         db = current_db()
