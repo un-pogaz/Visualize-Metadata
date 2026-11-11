@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 __license__   = 'GPL v3'
-__copyright__ = '2016 DaltonST (heavly rewrited), 2026 un_pogaz <un.pogaz@gmail.com>'
+__copyright__ = '2026 un_pogaz <un.pogaz@gmail.com>'
 
 
 try:
@@ -10,9 +10,9 @@ except NameError:
     pass  # load_translations() added in calibre 1.9
 
 try:
-    from qt.core import QColor, QPainter, QPaintEvent, QPen, QRect, Qt, QWidget
+    from qt.core import QAbstractScrollArea, QColor, QPainter, QPaintEvent, QPen, QRect, QSize, Qt
 except ImportError:
-    from PyQt5.Qt import QColor, QPainter, QPaintEvent, QPen, QRect, Qt, QWidget
+    from PyQt5.Qt import QAbstractScrollArea, QColor, QPainter, QPaintEvent, QPen, QRect, QSize, Qt
 
 
 from itertools import cycle
@@ -58,10 +58,13 @@ class ColorData(NamedTuple):
 
 class Chart:
     def __init__(self):
-        self.view: ViewChartWidget = None
+        self.view: ChartViewWidget = None
 
-    def setView(self, view: 'ViewChartWidget'):
+    def setView(self, view: 'ChartViewWidget'):
         self.view = view
+
+    def calcMinimumSize(self) -> QSize:
+        raise NotImplementedError('calcMinimumSize() need to be overridden in a subclass')
 
     def draw(self, painter: QPainter, rect: QRect):
         raise NotImplementedError('draw() need to be overridden in a subclass')
@@ -71,6 +74,9 @@ class PieChart(Chart):
     def __init__(self, has_outline: bool=False):
         Chart.__init__(self)
         self.has_outline = has_outline
+
+    def calcMinimumSize(self) -> QSize:
+        return QSize(0, 0)
 
     def draw(self, painter: QPainter, rect: QRect):
         # ensure square
@@ -122,12 +128,13 @@ class PieChart(Chart):
             painter.drawEllipse(rect.toRect())
 
 
-class ViewChartWidget(QWidget):
+class ChartViewWidget(QAbstractScrollArea):
     chart: Chart
     _colors: Iterator[QColor]
     
     def __init__(self, chart: Chart=None, parent=None):
-        QWidget.__init__(self, parent)
+        QAbstractScrollArea.__init__(self, parent)
+        self.setStyleSheet('QAbstractScrollArea{background: transparent; border: none}')
         self.values: List[ColorData] = []
         self.setChart(chart or PieChart())
         self.clear()
@@ -142,26 +149,42 @@ class ViewChartWidget(QWidget):
                 name=name,
                 count=count,
             ))
-        self.update()
+        self.updateScrollbarRanges()
 
     def clear(self):
         self._colors = cycle(COLORS)
         self.values.clear()
+        self.updateScrollbarRanges()
+
+    def replaceDatas(self, datas: Iterable[Tuple[str, int]]):
+        self.setUpdatesEnabled(False)
+        self.clear()
+        self.addDatas(datas)
+        self.setUpdatesEnabled(True)
         self.update()
 
     def setChart(self, chart: Chart):
         self.chart = chart
         self.chart.setView(self)
+        self.updateScrollbarRanges()
+
+    def updateScrollbarRanges(self) -> None:
+        minimum_size = self.chart.calcMinimumSize()
+        viewport_size = self.viewport().size()
+        
+        sb = self.verticalScrollBar()
+        sb.setRange(0, max(0, minimum_size.height() - viewport_size.height()))
+        
+        sb = self.horizontalScrollBar()
+        sb.setRange(0, max(0, minimum_size.width() - viewport_size.width()))
         self.update()
 
     def paintEvent(self, event: QPaintEvent):
-        margin = self.contentsMargins()
-        rect = self.rect().adjusted(
-            max(0, margin.left()),
-            max(0, margin.top()),
-            -max(0, margin.right()),
-            -max(0, margin.bottom()),
-        )
-        with QPainter(self) as painter:
+        # Get visible area
+        scroll_y = self.verticalScrollBar().value()
+        scroll_x = self.horizontalScrollBar().value()
+        viewport = self.viewport()
+        visible_rect = viewport.rect().translated(scroll_x, scroll_y)
+        with QPainter(self.viewport()) as painter:
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-            self.chart.draw(painter, rect)
+            self.chart.draw(painter, visible_rect)

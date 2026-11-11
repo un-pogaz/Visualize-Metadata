@@ -61,7 +61,7 @@ from calibre.gui2.widgets2 import Dialog
 from calibre.utils.date import is_date_undefined
 from calibre.utils.icu import sort_key
 
-from .charts import NO_VALUE, ViewChartWidget
+from .charts import NO_VALUE, ChartViewWidget
 from .common_utils import PLUGIN_NAME, current_db, debug_print, get_gui, get_icon
 from .common_utils.librarys import field_name, get_BookIds_all, get_BookIds_search, get_BookIds_virtual
 from .common_utils.widgets import KeyValueComboBox
@@ -355,7 +355,7 @@ class VisualizeMetadataDialog(Dialog):
         sa = QScrollArea(self)
         sa.setMinimumWidth(200)
         
-        self.chart = ViewChartWidget(parent=self)
+        self.chart = ChartViewWidget(parent=self)
         self.chart.setMinimumSize(10, 10)
         
         splitter.addWidget(self.chart)
@@ -406,8 +406,7 @@ class VisualizeMetadataDialog(Dialog):
             self.legends.removeItem(wl)
             wl = self.legends.takeAt(0)
         
-        self.chart.clear()
-        self.chart.addDatas(self.data.items())
+        self.chart.replaceDatas(self.data.items())
         r = self.legends.rowCount()
         for data in self.chart.values:
             r = self.legends.rowCount()
