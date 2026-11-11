@@ -14,7 +14,7 @@ try:
 except ImportError:
     from PyQt5.Qt import QAbstractScrollArea, QColor, QPainter, QPaintEvent, QPen, QRect, QSize, Qt
 
-
+from dataclasses import dataclass
 from itertools import cycle
 from typing import Iterable, Iterator, List, NamedTuple, Tuple
 
@@ -56,29 +56,22 @@ class ColorData(NamedTuple):
     name: str
 
 
+@dataclass
 class Chart:
-    def __init__(self):
-        self.view: ChartViewWidget = None
-
-    def setView(self, view: 'ChartViewWidget'):
-        self.view = view
-
-    def calcMinimumSize(self) -> QSize:
+    def calcMinimumSize(self, values: List[ColorData]) -> QSize:
         raise NotImplementedError('calcMinimumSize() need to be overridden in a subclass')
 
-    def draw(self, painter: QPainter, rect: QRect):
+    def draw(self, painter: QPainter, rect: QRect, values: List[ColorData]):
         raise NotImplementedError('draw() need to be overridden in a subclass')
 
 
 class PieChart(Chart):
-    def __init__(self, has_outline: bool=False):
-        Chart.__init__(self)
-        self.has_outline = has_outline
+    has_outline: bool = False
 
-    def calcMinimumSize(self) -> QSize:
+    def calcMinimumSize(self, values: List[ColorData]) -> QSize:
         return QSize(0, 0)
 
-    def draw(self, painter: QPainter, rect: QRect):
+    def draw(self, painter: QPainter, rect: QRect, values: List[ColorData]):
         # ensure square
         size = min(rect.height(), rect.width())
         rect = QRect(rect)
@@ -88,7 +81,7 @@ class PieChart(Chart):
         # apply outline
         if self.has_outline:
             outline_pen = QPen(Qt.GlobalColor.white, 2)
-            if len(self.view.values) > 1:
+            if len(values) > 1:
                 painter.setPen(outline_pen)
             else:
                 painter.setPen(Qt.transparent)
@@ -101,7 +94,6 @@ class PieChart(Chart):
         # draw splices
         ## startAngle and spanAngle must be specified in 1/16th of a degree,
         ## i.e. a full circle equals 5760 (16 * 360)
-        values = self.view.values
         vtotal = float(sum(e.count for e in values))
         start_angle = offset = 90 * 16
         first_slice = True
@@ -122,10 +114,10 @@ class PieChart(Chart):
             span_angle = start_angle + 360 * 16 - offset
             painter.drawPie(rect, offset, max(0, span_angle))
         
-        if self.has_outline and len(self.view.values) == 1:
+        if self.has_outline and len(values) == 1:
             painter.setPen(outline_pen)
             painter.setBrush(Qt.transparent)
-            painter.drawEllipse(rect.toRect())
+            painter.drawEllipse(rect)
 
 
 class ChartViewWidget(QAbstractScrollArea):
@@ -165,7 +157,6 @@ class ChartViewWidget(QAbstractScrollArea):
 
     def setChart(self, chart: Chart):
         self.chart = chart
-        self.chart.setView(self)
         self.updateScrollbarRanges()
 
     def updateScrollbarRanges(self) -> None:
@@ -187,4 +178,4 @@ class ChartViewWidget(QAbstractScrollArea):
         visible_rect = viewport.rect().translated(scroll_x, scroll_y)
         with QPainter(self.viewport()) as painter:
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-            self.chart.draw(painter, visible_rect)
+            self.chart.draw(painter, visible_rect, self.values)
