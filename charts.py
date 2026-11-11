@@ -80,12 +80,14 @@ class PieChart(Chart):
         
         # apply outline
         if self.has_outline:
-            outline_pen = QPen(Qt.GlobalColor.white, 2)
+            dpr = painter.device().devicePixelRatioF()
+            outline_pen = QPen(Qt.GlobalColor.white, 2*dpr)
             if len(values) > 1:
                 painter.setPen(outline_pen)
             else:
                 painter.setPen(Qt.transparent)
-            rect.adjust(1, 1, -1, -1)
+            rect = rect.toRectF()
+            rect.adjust(dpr, dpr, -dpr, -dpr)
             overlap = 0
         else:
             painter.setPen(Qt.transparent)
