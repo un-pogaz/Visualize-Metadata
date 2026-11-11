@@ -66,7 +66,7 @@ class Chart:
 
 
 class PieChart(Chart):
-    has_outline: bool = False
+    outline_width: float = 0
 
     def calcMinimumSize(self, values: List[ColorData]) -> QSize:
         return QSize(0, 0)
@@ -79,15 +79,17 @@ class PieChart(Chart):
         rect.setWidth(size)
         
         # apply outline
-        if self.has_outline:
+        if self.outline_width > 0:
             dpr = painter.device().devicePixelRatioF()
-            outline_pen = QPen(Qt.GlobalColor.white, 2*dpr)
+            width = self.outline_width * dpr
+            offset = width / 2
+            outline_pen = QPen(Qt.GlobalColor.white, width)
             if len(values) > 1:
                 painter.setPen(outline_pen)
             else:
                 painter.setPen(Qt.transparent)
             rect = rect.toRectF()
-            rect.adjust(dpr, dpr, -dpr, -dpr)
+            rect.adjust(offset, offset, -offset, -offset)
             overlap = 0
         else:
             painter.setPen(Qt.transparent)
@@ -116,7 +118,7 @@ class PieChart(Chart):
             span_angle = start_angle + 360 * 16 - offset
             painter.drawPie(rect, offset, max(0, span_angle))
         
-        if self.has_outline and len(values) == 1:
+        if self.outline_width > 0 and len(values) == 1:
             painter.setPen(outline_pen)
             painter.setBrush(Qt.transparent)
             painter.drawEllipse(rect)
@@ -178,6 +180,6 @@ class ChartViewWidget(QAbstractScrollArea):
         scroll_x = self.horizontalScrollBar().value()
         viewport = self.viewport()
         visible_rect = viewport.rect().translated(scroll_x, scroll_y)
-        with QPainter(self.viewport()) as painter:
+        with QPainter(viewport) as painter:
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
             self.chart.draw(painter, visible_rect, self.values)
