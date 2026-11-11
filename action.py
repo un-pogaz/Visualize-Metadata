@@ -13,14 +13,10 @@ try:
     from qt.core import (
         QCheckBox,
         QColor,
-        QGridLayout,
         QHBoxLayout,
         QLabel,
         QPalette,
         QPushButton,
-        QScrollArea,
-        QSizePolicy,
-        QSpacerItem,
         QSplitter,
         Qt,
         QToolButton,
@@ -31,14 +27,10 @@ except ImportError:
     from PyQt5.Qt import (
         QCheckBox,
         QColor,
-        QGridLayout,
         QHBoxLayout,
         QLabel,
         QPalette,
         QPushButton,
-        QScrollArea,
-        QSizePolicy,
-        QSpacerItem,
         QSplitter,
         Qt,
         QToolButton,
@@ -61,7 +53,7 @@ from calibre.gui2.widgets2 import Dialog
 from calibre.utils.date import is_date_undefined
 from calibre.utils.icu import sort_key
 
-from .charts import NO_VALUE, ChartViewWidget
+from .charts import NO_VALUE, ChartViewWidget, LegendChart
 from .common_utils import PLUGIN_NAME, current_db, debug_print, get_gui, get_icon
 from .common_utils.librarys import field_name, get_BookIds_all, get_BookIds_search, get_BookIds_virtual
 from .common_utils.widgets import KeyValueComboBox
@@ -349,23 +341,18 @@ class VisualizeMetadataDialog(Dialog):
         splitter.setOpaqueResize(True)
         splitter.setHandleWidth(5)
         splitter.setChildrenCollapsible(False)
-        
         l.addWidget(splitter, 1)
-        
-        sa = QScrollArea(self)
-        sa.setMinimumWidth(200)
         
         self.chart = ChartViewWidget(parent=self)
         self.chart.setMinimumSize(10, 10)
         
-        splitter.addWidget(self.chart)
-        splitter.addWidget(sa)
+        self.legends = ChartViewWidget(chart=LegendChart(), parent=self)
+        self.legends.setMinimumSize(10, 10)
         
-        scroll = QWidget()
-        sa.setWidget(scroll)
-        sa.setWidgetResizable(True)
-        self.legends = QGridLayout()
-        scroll.setLayout(self.legends)
+        splitter.addWidget(self.chart)
+        splitter.addWidget(self.legends)
+        splitter.setSizes((400, 200))
+        self.chart.values = self.legends.values  # make chared reference
 
     def field_changed(self):
         db = current_db()
@@ -397,34 +384,8 @@ class VisualizeMetadataDialog(Dialog):
             exclude_none=self.exclude_none.isChecked(),
         )
         
-        wl = self.legends.takeAt(0)
-        while wl:
-            w = wl.widget()
-            if w:
-                w.setParent(None)
-            wl.invalidate()
-            self.legends.removeItem(wl)
-            wl = self.legends.takeAt(0)
-        
-        self.chart.replaceDatas(self.data.items())
-        r = self.legends.rowCount()
-        for data in self.chart.values:
-            r = self.legends.rowCount()
-            color = QColorWidget(data.color)
-            color.setFixedSize(20, 20)
-            self.legends.addWidget(color, r, 0)
-            l = QLabel(str(data.count))
-            l.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
-            self.legends.addWidget(l, r, 1)
-            if not data.name:
-                l = QLabel(NO_VALUE)
-                item_style(l, italic=True)
-            else:
-                l = QLabel(data.name)
-            l.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
-            self.legends.addWidget(l, r, 2)
-        spacer = QSpacerItem(1, 1, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.legends.addItem(spacer, r+1, 3)
+        self.legends.replaceDatas(self.data.items())
+        self.chart.update()  # use chared reference with legends
 
     def export_csv(self):
         if not self.data:
