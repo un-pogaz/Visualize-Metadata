@@ -50,7 +50,9 @@ except ImportError:
 
 from dataclasses import dataclass
 from itertools import cycle
-from typing import Iterable, Iterator, List, NamedTuple, Tuple
+from typing import Iterable, List, NamedTuple, Tuple
+
+from calibre.utils.icu import sort_key
 
 NO_VALUE = _('no value')
 LEGEND_FMT = _('{:d}:')
@@ -217,7 +219,6 @@ class LegendChart(Chart):
             if y > rect.y() + rect.height():
                 break
             if y < rect.y() - entry_height:
-                print(data)
                 continue
             pixmap = self.render_legend_as_pixmap(parent, data, color_w, count_w, text_w)
             painter.drawPixmap(-rect.x(), y - rect.y(), pixmap)
@@ -284,7 +285,6 @@ class PieChart(Chart):
 
 class ChartViewWidget(QAbstractScrollArea):
     chart: Chart
-    _colors: Iterator[QColor]
     
     def __init__(self, chart: Chart=None, parent=None):
         QAbstractScrollArea.__init__(self, parent)
@@ -297,16 +297,27 @@ class ChartViewWidget(QAbstractScrollArea):
         self.addDatas([(name, count)])
 
     def addDatas(self, datas: Iterable[Tuple[str, int]]):
-        for name, count in datas:
-            self.values.append(ColorData(
-                color=next(self._colors),
-                name=name,
-                count=count,
-            ))
+        lst = []
+        print(len(self.values), len(datas))
+        lst.extend((x.name, x.count) for x in self.values)
+        lst.extend(datas)
+        
+        def key(x: Tuple[int, Tuple[str, int]]):
+            # None at the end, count, name
+            return not x[1][0], x[1][1], sort_key(x[1][0])
+        
+        icolors = cycle(COLORS)
+        for c,(i,(n,v)) in zip(icolors, sorted(enumerate(lst), key=key)):
+            lst[i] = ColorData(
+                color=c,
+                name=n,
+                count=v,
+            )
+        self.values.clear()
+        self.values.extend(lst)
         self.updateScrollbarRanges()
 
     def clear(self):
-        self._colors = cycle(COLORS)
         self.values.clear()
         self.updateScrollbarRanges()
 
