@@ -59,10 +59,10 @@ class ColorData(NamedTuple):
 class Chart:
     def __init__(self):
         self.view: ViewChartWidget = None
-    
+
     def setView(self, view: 'ViewChartWidget'):
         self.view = view
-    
+
     def draw(self, painter: QPainter, rect: QRect):
         raise NotImplementedError('draw() need to be overridden in a subclass')
 
@@ -71,9 +71,8 @@ class PieChart(Chart):
     def __init__(self, has_outline: bool=False):
         Chart.__init__(self)
         self.has_outline = has_outline
-    
+
     def draw(self, painter: QPainter, rect: QRect):
-        painter.save()
         # ensure square
         size = min(rect.height(), rect.width())
         rect = QRect(rect)
@@ -113,16 +112,14 @@ class PieChart(Chart):
             start_angle += span_angle
             first_slice = False
         if values:
-            painter.setBrush(QColor(values[-1].color))
+            painter.setBrush(values[-1].color)
             span_angle = start_angle + 360 * 16 - offset
             painter.drawPie(rect, offset, max(0, span_angle))
         
         if self.has_outline and len(self.view.values) == 1:
             painter.setPen(outline_pen)
             painter.setBrush(Qt.transparent)
-            painter.drawEllipse(rect.toRectF())
-        
-        painter.restore()
+            painter.drawEllipse(rect.toRect())
 
 
 class ViewChartWidget(QWidget):
