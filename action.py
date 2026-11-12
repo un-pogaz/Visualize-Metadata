@@ -45,7 +45,7 @@ from enum import Enum
 from functools import partial
 from typing import Dict, Set, Union
 
-from calibre.db.fields import IdentifiersField, ManyToManyField, ManyToOneField, OneToOneField
+from calibre.db.fields import FormatsField, IdentifiersField, ManyToManyField, ManyToOneField, OneToOneField
 from calibre.ebooks.metadata import rating_to_stars
 from calibre.gui2 import choose_dir
 from calibre.gui2.actions import InterfaceAction
@@ -152,6 +152,10 @@ def get_visualize_data(field: str, visualize_scope: VisualizeScope) -> Dict[Unio
                 if i not in rslt:
                     rslt[i] = set()
                 rslt[i].add(k)
+        rslt[None] = set(db.all_book_ids()).difference(field_obj.table.book_col_map)
+    elif isinstance(field_obj, FormatsField):
+        for k,v in field_obj.table.col_book_map.items():
+            rslt[k].update(v)
         rslt[None] = set(db.all_book_ids()).difference(field_obj.table.book_col_map)
     elif isinstance(field_obj, (ManyToManyField, ManyToOneField)):
         for k,v in field_obj.table.id_map.items():
