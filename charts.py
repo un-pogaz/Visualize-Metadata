@@ -126,14 +126,14 @@ class LegendChart(Chart):
         max_count = max((x.count for x in values), default='')
         count_w = fm.boundingRect(LEGEND_FMT.format(max_count)).width()
         
-        dpr = parent.devicePixelRatio()
+        dpr = parent.devicePixelRatioF()
         return round(self.entry_height * dpr), count_w, max(text_w)
     
     def calcMinimumSize(self, parent: QWidget, values: List[ColorData]) -> QSize:
         if not values:
             return QSize(0, 0)
         
-        dpr = parent.devicePixelRatio()
+        dpr = parent.devicePixelRatioF()
         count_margin = round(self.count_margin * dpr)
         text_margin = round(self.text_margin * dpr)
         color_w, count_w, text_w = self.calc_legend_size(parent, values)
@@ -211,7 +211,7 @@ class LegendChart(Chart):
         return rslt
 
     def draw(self, parent: QWidget, painter: QPainter, rect: QRect, values: List[ColorData]):
-        dpr = parent.devicePixelRatio()
+        dpr = parent.devicePixelRatioF()
         entry_height = round(self.entry_height * dpr)
         color_w, count_w, text_w = self.calc_legend_size(parent, values)
         for i,data in enumerate(values):
@@ -225,7 +225,7 @@ class LegendChart(Chart):
 
 
 class PieChart(Chart):
-    outline_width: float = 0
+    outline_width: int = 0
 
     def calcMinimumSize(self, parent: QWidget, values: List[ColorData]) -> QSize:
         return QSize(0, 0)
@@ -239,9 +239,9 @@ class PieChart(Chart):
         
         # apply outline
         if self.outline_width > 0:
-            dpr = painter.device().devicePixelRatioF()
+            dpr = parent.devicePixelRatioF()
             width = self.outline_width * dpr
-            offset = width / 2
+            offset = width / 2.0
             outline_pen = QPen(Qt.GlobalColor.white, width)
             if len(values) > 1:
                 painter.setPen(outline_pen)
@@ -298,7 +298,6 @@ class ChartViewWidget(QAbstractScrollArea):
 
     def addDatas(self, datas: Iterable[Tuple[str, int]]):
         lst = []
-        print(len(self.values), len(datas))
         lst.extend((x.name, x.count) for x in self.values)
         lst.extend(datas)
         

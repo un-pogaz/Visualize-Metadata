@@ -105,13 +105,6 @@ def pick_file_to_export(field: str, ext: str, parent=None) -> str:
     return os.path.join(dir, f'visualize_export_{field}.{ext}')
 
 
-def item_style(item: QWidget, *, bold: bool=False, italic: bool=False):
-    font = item.font()
-    font.setBold(bold)
-    font.setItalic(italic)
-    item.setFont(font)
-
-
 def get_analyze_fields() -> Set[str]:
     db = current_db()
     fm = db.field_metadata
@@ -343,11 +336,15 @@ class VisualizeMetadataDialog(Dialog):
         splitter.setChildrenCollapsible(False)
         l.addWidget(splitter, 1)
         
+        dprv = self.devicePixelRatioF()
+        def dpr(v):
+            return round(v * dprv)
+        
         self.chart = ChartViewWidget(parent=self)
-        self.chart.setMinimumSize(400, 400)
+        self.chart.setMinimumSize(dpr(400), dpr(400))
         
         self.legends = ChartViewWidget(chart=LegendChart(), parent=self)
-        self.legends.setMinimumSize(160, 10)
+        self.legends.setMinimumSize(dpr(160), 10)
         
         splitter.addWidget(self.chart)
         splitter.addWidget(self.legends)
@@ -355,8 +352,8 @@ class VisualizeMetadataDialog(Dialog):
         self.chart.values = self.legends.values  # make chared reference
         
         self.setMinimumSize(
-            40 + self.chart.minimumWidth() + self.legends.minimumWidth(),
-            10 + self.chart.minimumHeight() + lsize.height(),
+            dpr(40) + self.chart.minimumWidth() + self.legends.minimumWidth(),
+            dpr(10) + self.chart.minimumHeight() + lsize.height(),
         )
 
     def field_changed(self):
