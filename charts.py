@@ -260,9 +260,21 @@ class PieChart(Chart):
         vtotal = float(sum(e.count for e in values))
         start_angle = offset = 90 * 16
         first_slice = True
+        lst_merged = []
+        
+        def calc_modulo(value):
+            i = int(value)
+            return i, value - i
+        
         for d in values[:-1]:
             v = d.count / vtotal
-            span_angle = round(v * -360.0 * 16)
+            span_angle, span_modulo = calc_modulo(v * -360.0 * 16)
+            lst_merged.append(span_modulo)
+            merged_angle, merged_modulo = calc_modulo(sum(lst_merged))
+            if merged_angle < 0:
+                span_angle += merged_angle
+                lst_merged.clear()
+                lst_merged.append(merged_modulo)
             if span_angle >= 0:  # skip empty slices
                 continue
             painter.setBrush(d.color)
