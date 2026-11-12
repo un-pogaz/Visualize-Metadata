@@ -387,7 +387,7 @@ class VisualizeMetadataDialog(Dialog):
         )
         
         self.legends.replaceDatas(self.data.items())
-        self.chart.update()  # use chared reference with legends
+        self.chart.updateScrollbarRanges()
 
     def export_csv(self):
         if not self.data:

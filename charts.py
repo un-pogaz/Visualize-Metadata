@@ -295,6 +295,45 @@ class PieChart(Chart):
             painter.drawEllipse(rect)
 
 
+class BarChart(Chart):
+    bar_width: int = 25
+    bar_gap: int = 5
+
+    def calcMinimumSize(self, parent: QWidget, values: List[ColorData]) -> QSize:
+        if not values:
+            return QSize(0, 0)
+        
+        dpr = parent.devicePixelRatioF()
+        lenght = len(values)
+        bar_w = self.bar_width * lenght * dpr
+        gap_w = self.bar_gap * (lenght - 1) * dpr
+        return QSizeF(bar_w + gap_w, 0).toSize()
+
+    def draw(self, parent: QWidget, painter: QPainter, rect: QRect, values: List[ColorData]):
+        dpr = parent.devicePixelRatioF()
+        bar_width = round(self.bar_width * dpr)
+        bar_gap = round(self.bar_gap * dpr)
+        bar_gap_width = bar_width + bar_gap
+        
+        painter.setPen(Qt.transparent)
+        vmax = float(max((e.count for e in values), default=0))
+        last_color = QColor(Qt.transparent)
+        for i,data in enumerate(values):
+            x = i * bar_gap_width
+            if x > rect.x() + rect.height() + bar_gap_width:
+                break
+            if x < rect.x() - bar_width:
+                continue
+            
+            painter.setBrush(data.color)
+            painter.drawRect(QRect(
+                x - rect.x(),
+                rect.bottom(),
+                bar_width,
+                -max(1, round(rect.height() * (data.count / vmax))),
+            ))
+
+
 class ChartViewWidget(QAbstractScrollArea):
     chart: Chart
     
