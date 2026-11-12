@@ -263,6 +263,7 @@ class VisualizeMetadataDialog(Dialog):
     def __init__(self):
         self.raw_data: Dict[Union[str, bool, datetime, int], int] = {}
         self.data: Dict[str, int] = {}
+        self.current_field: str = None
         Dialog.__init__(self,
             title=self.TITLE,
             name='plugin.VisualizeMetadata:VisualizeMetadataDialog',
@@ -282,7 +283,6 @@ class VisualizeMetadataDialog(Dialog):
         visualize_scope = {n:n._value_ for n in VisualizeScope._member_map_.values()}
         self.field_selected = KeyValueComboBox(analyze_fields, parent=self)
         self.field_selected.setCurrentIndex(-1)
-        self.field_selected.currentIndexChanged.connect(self.field_changed)
         self.visualize_scope = KeyValueComboBox(visualize_scope, parent=self)
         self.button_reload = QPushButton(get_icon('view-refresh.png'), '', self)
         self.button_reload.setToolTip(_('Refresh the visualization'))
@@ -356,19 +356,13 @@ class VisualizeMetadataDialog(Dialog):
             dpr(10) + self.chart.minimumHeight() + lsize.height(),
         )
 
-    def field_changed(self):
-        db = current_db()
-        fm = db.field_metadata
-        fm = fm[self.field_selected.selected_key()]
-        self.label_group.setVisible(fm['datatype'] == 'datetime')
-        self.date_group.setVisible(fm['datatype'] == 'datetime')
-
     def load_data(self):
         if self.field_selected.currentIndex() < 0:
             return
         self.setWindowTitle(self.TITLE + ' :: ' + self.field_selected.currentText())
+        self.current_field = self.field_selected.selected_key()
         self.raw_data = get_visualize_data(
-            field=self.field_selected.selected_key(),
+            field=self.current_field,
             visualize_scope=self.visualize_scope.selected_key(),
         )
         self.refresh()
@@ -376,10 +370,17 @@ class VisualizeMetadataDialog(Dialog):
     def refresh(self):
         VisualizeMetadataDialog.last_group_sort = self.group_sort.selected_key()
         VisualizeMetadataDialog.last_date_group = self.date_group.selected_key()
-        if self.field_selected.currentIndex() < 0:
+        if self.field_selected.currentIndex() < 0 or not self.current_field:
             return
+        
+        db = current_db()
+        fm = db.field_metadata
+        fm = fm[self.current_field]
+        self.label_group.setVisible(fm['datatype'] == 'datetime')
+        self.date_group.setVisible(fm['datatype'] == 'datetime')
+        
         self.data = group_visualize_data(
-            field=self.field_selected.selected_key(),
+            field=self.current_field,
             data=self.raw_data,
             group_sort=self.group_sort.selected_key(),
             date_group=self.date_group.selected_key(),
@@ -392,7 +393,7 @@ class VisualizeMetadataDialog(Dialog):
     def export_csv(self):
         if not self.data:
             return
-        file = pick_file_to_export(self.field_selected.selected_key(), 'csv', self)
+        file = pick_file_to_export(self.current_field, 'csv', self)
         if not file:
             return
         no_value = f'<{NO_VALUE}>'
@@ -409,7 +410,7 @@ class VisualizeMetadataDialog(Dialog):
         import json
         if not self.data:
             return
-        file = pick_file_to_export(self.field_selected.selected_key(), 'json', self)
+        file = pick_file_to_export(self.current_field, 'json', self)
         if not file:
             return
         no_value = f'<{NO_VALUE}>'
