@@ -102,6 +102,7 @@ class Chart:
         raise NotImplementedError('draw() need to be overridden in a subclass')
 
 
+@dataclass(unsafe_hash=True)
 class LegendChart(Chart):
     entry_height: int = 26
     count_margin: int = 10
@@ -224,6 +225,7 @@ class LegendChart(Chart):
             painter.drawPixmap(-rect.x(), y - rect.y(), pixmap)
 
 
+@dataclass(unsafe_hash=True)
 class PieChart(Chart):
     outline_width: int = 0
 
@@ -295,6 +297,7 @@ class PieChart(Chart):
             painter.drawEllipse(rect)
 
 
+@dataclass(unsafe_hash=True)
 class BarChart(Chart):
     bar_width: int = 25
     bar_gap: int = 5

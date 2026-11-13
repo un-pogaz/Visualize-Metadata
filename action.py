@@ -53,12 +53,19 @@ from calibre.gui2.widgets2 import Dialog
 from calibre.utils.date import is_date_undefined
 from calibre.utils.icu import sort_key
 
-from .charts import NO_VALUE, ChartViewWidget, LegendChart
+from .charts import NO_VALUE, BarChart, Chart, ChartViewWidget, LegendChart, PieChart
 from .common_utils import PLUGIN_NAME, current_db, debug_print, get_gui, get_icon
 from .common_utils.librarys import field_name, get_BookIds_all, get_BookIds_search, get_BookIds_virtual
 from .common_utils.widgets import KeyValueComboBox
 
 PLUGIN_ICON = 'images/plugin.png'
+
+CHARTS = {
+    PieChart(outline_width=0): _('Pie'),
+    PieChart(outline_width=2): _('Pie (outline)'),
+    BarChart(bar_width=25, bar_gap=5): _('Bar (with gap)'),
+    BarChart(bar_width=25, bar_gap=0): _('Bar'),
+}
 
 
 class VisualizeMetadataAction(InterfaceAction):
@@ -263,7 +270,8 @@ class VisualizeMetadataDialog(Dialog):
     TITLE = _('Visualize Metadata')
     last_group_sort: GroupSort = GroupSort.size_descending
     last_date_group: DateGroup = DateGroup.day
-    
+    last_chart: Chart = next(iter(CHARTS))
+
     def __init__(self):
         self.raw_data: Dict[Union[str, bool, datetime, int], int] = {}
         self.data: Dict[str, int] = {}
@@ -277,6 +285,10 @@ class VisualizeMetadataDialog(Dialog):
     def setup_ui(self):
         l = QVBoxLayout(self)
         self.setLayout(l)
+        
+        dprv = self.devicePixelRatioF()
+        def dpr(v):
+            return round(v * dprv)
         
         db = current_db()
         fm = db.field_metadata
@@ -299,6 +311,9 @@ class VisualizeMetadataDialog(Dialog):
         h.addWidget(self.button_reload)
         h.addStretch()
         
+        self.selected_chart = KeyValueComboBox(CHARTS, selected_key=self.last_chart, parent=self)
+        self.selected_chart.currentIndexChanged.connect(self.refresh_chart)
+        
         group_sort = {n:n._value_ for n in GroupSort._member_map_.values()}
         self.group_sort = KeyValueComboBox(group_sort, selected_key=self.last_group_sort, parent=self)
         self.group_sort.currentIndexChanged.connect(self.refresh)
@@ -316,6 +331,7 @@ class VisualizeMetadataDialog(Dialog):
         
         h = QHBoxLayout()
         l.addLayout(h)
+        h.addWidget(self.selected_chart)
         h.addWidget(self.group_sort)
         h.addWidget(self.label_group)
         h.addWidget(self.date_group)
@@ -336,15 +352,11 @@ class VisualizeMetadataDialog(Dialog):
         
         splitter = QSplitter(Qt.Orientation.Horizontal, self)
         splitter.setOpaqueResize(True)
-        splitter.setHandleWidth(5)
+        splitter.setHandleWidth(dpr(5))
         splitter.setChildrenCollapsible(False)
         l.addWidget(splitter, 1)
         
-        dprv = self.devicePixelRatioF()
-        def dpr(v):
-            return round(v * dprv)
-        
-        self.chart = ChartViewWidget(parent=self)
+        self.chart = ChartViewWidget(chart=self.last_chart, parent=self)
         self.chart.setMinimumSize(dpr(400), dpr(400))
         
         self.legends = ChartViewWidget(chart=LegendChart(), parent=self)
@@ -370,6 +382,11 @@ class VisualizeMetadataDialog(Dialog):
             visualize_scope=self.visualize_scope.selected_key(),
         )
         self.refresh()
+
+    def refresh_chart(self):
+        chart = self.selected_chart.selected_key()
+        VisualizeMetadataDialog.last_chart = chart
+        self.chart.setChart(chart)
 
     def refresh(self):
         VisualizeMetadataDialog.last_group_sort = self.group_sort.selected_key()
