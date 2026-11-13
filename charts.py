@@ -320,6 +320,9 @@ class BarChart(Chart):
         bar_gap_width = bar_width + bar_gap
         force_bar = max(0, int(self.force_bar))
         
+        def calc_height(d):
+            return max(force_bar, round(rect.height() * (d.count / vmax)))
+        
         painter.setPen(Qt.transparent)
         vmax = float(max((e.count for e in values), default=0))
         last_color = QColor(Qt.transparent)
@@ -331,12 +334,21 @@ class BarChart(Chart):
                 continue
             
             painter.setBrush(data.color)
-            painter.drawRect(QRect(
+            bar = QRect(
                 x - rect.x(),
                 rect.bottom(),
                 bar_width,
-                -max(force_bar, round(rect.height() * (data.count / vmax))),
-            ))
+                -calc_height(data),
+            )
+            painter.drawRect(bar)
+            if bar_gap == 0 and last_color == data.color:
+                painter.setBrush(Qt.GlobalColor.black)
+                bar.setWidth(round(dpr))
+                if data.count > values[i-1].count:
+                    bar.translate(-round(dpr), 0)
+                    bar.setHeight(-calc_height(data))
+                painter.drawRect(bar)
+            last_color = data.color
 
 
 class ChartViewWidget(QAbstractScrollArea):
