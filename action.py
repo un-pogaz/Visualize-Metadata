@@ -43,6 +43,7 @@ from collections import defaultdict
 from datetime import datetime
 from enum import Enum
 from functools import partial
+from itertools import count
 from typing import Dict, Set, Union
 
 from calibre.db.fields import FormatsField, IdentifiersField, ManyToManyField, ManyToOneField, OneToOneField
@@ -109,7 +110,11 @@ def pick_file_to_export(field: str, ext: str, parent=None) -> str:
     )
     if not dir:
         return
-    return os.path.join(dir, f'visualize_export_{field}.{ext}')
+    rslt = os.path.join(dir, f'visualize_export {field}.{ext}')
+    icount = count(1)
+    while os.path.exists(rslt):
+        rslt = os.path.join(dir, f'visualize_export {field} ({next(icount)}).{ext}')
+    return rslt
 
 
 def get_analyze_fields() -> Set[str]:
