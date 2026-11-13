@@ -98,6 +98,10 @@ class Chart:
     def calcMinimumSize(self, parent: QWidget, values: List[ColorData]) -> QSize:
         raise NotImplementedError('calcMinimumSize() need to be overridden in a subclass')
 
+    def calcScrollPageStep(self, parent: QWidget) -> QSize:
+        step = round(10 * parent.devicePixelRatioF())
+        return QSize(step, step)
+
     def draw(self, parent: QWidget, painter: QPainter, rect: QRect, values: List[ColorData]):
         raise NotImplementedError('draw() need to be overridden in a subclass')
 
@@ -154,6 +158,12 @@ class LegendChart(Chart):
         width = color_w + count_w + text_w
         width += count_margin + text_margin + max(count_margin, text_margin) / 2
         return QSizeF(width, height).toSize()
+
+    def calcScrollPageStep(self, parent: QWidget) -> QSize:
+        dpr = parent.devicePixelRatioF()
+        size = Chart.calcScrollPageStep(self, parent)
+        size.setHeight(round(self.entry_height * dpr))
+        return size
 
     def render_legend_as_pixmap(
         self,
@@ -330,6 +340,12 @@ class BarChart(Chart):
         gap_w = self.bar_gap * (lenght - 1) * dpr
         return QSizeF(bar_w + gap_w, 0).toSize()
 
+    def calcScrollPageStep(self, parent: QWidget) -> QSize:
+        dpr = parent.devicePixelRatioF()
+        size = Chart.calcScrollPageStep(self, parent)
+        size.setWidth(round((self.bar_width + self.bar_gap) * dpr))
+        return size
+
     def draw(self, parent: QWidget, painter: QPainter, rect: QRect, values: List[ColorData]):
         dpr = parent.devicePixelRatioF()
         bar_width = round(self.bar_width * dpr)
@@ -434,11 +450,14 @@ class ChartViewWidget(QAbstractScrollArea):
     def updateScrollbarRanges(self, update=True):
         viewport = self.viewport()
         minimum_size = self.chart.calcMinimumSize(self, self.values)
+        scroll_page_step = self.chart.calcScrollPageStep(self)
         
         sb = self.verticalScrollBar()
+        sb.setPageStep(scroll_page_step.height())
         sb.setRange(0, max(0, minimum_size.height() - viewport.height()))
         
         sb = self.horizontalScrollBar()
+        sb.setPageStep(scroll_page_step.width())
         sb.setRange(0, max(0, minimum_size.width() - viewport.width()))
         self.update()
 
