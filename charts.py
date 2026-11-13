@@ -298,6 +298,7 @@ class PieChart(Chart):
 class BarChart(Chart):
     bar_width: int = 25
     bar_gap: int = 5
+    force_bar: bool = True
 
     def calcMinimumSize(self, parent: QWidget, values: List[ColorData]) -> QSize:
         if not values:
@@ -314,6 +315,7 @@ class BarChart(Chart):
         bar_width = round(self.bar_width * dpr)
         bar_gap = round(self.bar_gap * dpr)
         bar_gap_width = bar_width + bar_gap
+        force_bar = max(0, int(self.force_bar))
         
         painter.setPen(Qt.transparent)
         vmax = float(max((e.count for e in values), default=0))
@@ -330,13 +332,13 @@ class BarChart(Chart):
                 x - rect.x(),
                 rect.bottom(),
                 bar_width,
-                -max(1, round(rect.height() * (data.count / vmax))),
+                -max(force_bar, round(rect.height() * (data.count / vmax))),
             ))
 
 
 class ChartViewWidget(QAbstractScrollArea):
     chart: Chart
-    
+
     def __init__(self, chart: Chart=None, parent=None):
         QAbstractScrollArea.__init__(self, parent)
         self.setStyleSheet('QAbstractScrollArea{background: transparent; border: none}')
