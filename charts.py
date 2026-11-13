@@ -49,7 +49,7 @@ except ImportError:
     )
 
 from dataclasses import dataclass
-from itertools import cycle
+from itertools import count, cycle
 from typing import Iterable, List, NamedTuple, Tuple
 
 from calibre.utils.icu import sort_key
@@ -342,7 +342,6 @@ class BarChart(Chart):
         
         painter.setPen(Qt.transparent)
         vmax = float(max((e.count for e in values), default=0))
-        last_color = QColor(Qt.transparent)
         for i,data in enumerate(values):
             x = i * bar_gap_width
             if x > rect.x() + rect.height() + bar_gap_width:
@@ -351,21 +350,12 @@ class BarChart(Chart):
                 continue
             
             painter.setBrush(data.color)
-            bar = QRect(
+            painter.drawRect(QRect(
                 x - rect.x(),
                 rect.bottom(),
                 bar_width,
                 -calc_height(data),
-            )
-            painter.drawRect(bar)
-            if bar_gap == 0 and last_color == data.color:
-                painter.setBrush(Qt.GlobalColor.black)
-                bar.setWidth(round(dpr))
-                if data.count > values[i-1].count:
-                    bar.translate(-round(dpr), 0)
-                    bar.setHeight(-calc_height(data))
-                painter.drawRect(bar)
-            last_color = data.color
+            ))
 
 
 class ChartViewWidget(QAbstractScrollArea):
@@ -393,13 +383,36 @@ class ChartViewWidget(QAbstractScrollArea):
         
         icolors = cycle(COLORS)
         for c,(i,(n,v)) in zip(icolors, sorted(enumerate(lst), key=key)):
-            lst[i] = ColorData(
+            lst[i] = [c,n,v]
+        
+        if lst[0][0] == lst[-1][0]:
+            lst[-1][0] = next(icolors)
+        
+        def adjacent_color():
+            lc = None
+            for i,d in enumerate(lst):
+                if d[0] == lc:
+                    return i
+                lc = d[0]
+            return None
+        
+        idx = adjacent_color()
+        icount = count()
+        while idx is not None:
+            c = lst[idx][0]
+            lst[idx][0] = lst[idx+1][0]
+            lst[idx+1][0] = c
+            idx = adjacent_color()
+            if next(icount) > 1_000:
+                break
+        
+        self.values.clear()
+        for c,n,v in lst:
+            self.values.append(ColorData(
                 color=c,
                 name=n,
                 count=v,
-            )
-        self.values.clear()
-        self.values.extend(lst)
+            ))
         self.updateScrollbarRanges()
 
     def clear(self):
