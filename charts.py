@@ -286,6 +286,8 @@ class PieChart(Chart):
             )
             start_angle += span_angle
             first_slice = False
+            # reduce overlap if close to the start
+            overlap = min(overlap, start_angle + (16 * 360) - offset)
         if values:
             painter.setBrush(values[-1].color)
             span_angle = start_angle + 360 * 16 - offset
