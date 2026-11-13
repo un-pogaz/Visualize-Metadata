@@ -106,7 +106,7 @@ class LegendChart(Chart):
     entry_height: int = 26
     count_margin: int = 10
     text_margin: int = 5
-    
+
     def calc_legend_size(self, parent: QWidget, values: List[ColorData]) -> Tuple[int, int, int]:
         if not values:
             return 0, 0, 0
@@ -338,11 +338,12 @@ class BarChart(Chart):
 
 class ChartViewWidget(QAbstractScrollArea):
     chart: Chart
+    values: List[ColorData]
 
     def __init__(self, chart: Chart=None, parent=None):
         QAbstractScrollArea.__init__(self, parent)
         self.setStyleSheet('QAbstractScrollArea{background: transparent; border: none}')
-        self.values: List[ColorData] = []
+        self.values = []
         self.setChart(chart or PieChart())
         self.clear()
 
