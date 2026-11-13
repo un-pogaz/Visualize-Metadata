@@ -17,6 +17,7 @@ try:
         QLabel,
         QPalette,
         QPushButton,
+        QSpinBox,
         QSplitter,
         Qt,
         QToolButton,
@@ -31,6 +32,7 @@ except ImportError:
         QLabel,
         QPalette,
         QPushButton,
+        QSpinBox,
         QSplitter,
         Qt,
         QToolButton,
@@ -44,7 +46,7 @@ from datetime import datetime
 from enum import Enum
 from functools import partial
 from itertools import count
-from typing import Dict, Set, Union
+from typing import Dict, Set, TypedDict, Union
 
 from calibre.db.fields import FormatsField, IdentifiersField, ManyToManyField, ManyToOneField, OneToOneField
 from calibre.ebooks.metadata import rating_to_stars
@@ -193,12 +195,21 @@ def get_visualize_data(field: str, analyze_scope: AnalyzeScope) -> Dict[Union[st
     return {k:len(v) for k,v in rslt.items() if v}
 
 
+class GroupOption(TypedDict):
+    field: str
+    group_sort: GroupSort
+    date_group: DateGroup
+    exclude_none: bool
+    limite_top: Union[int, None]
+
+
 def group_visualize_data(
-    field: str,
     data: Dict[Union[str, bool, datetime, int], int],
+    field: str,
     group_sort: GroupSort,
     date_group: DateGroup,
     exclude_none: bool,
+    limite_top: Union[int, None],
 ) -> Dict[str, int]:
     db = current_db().new_api
     field_obj = db.fields[field]
@@ -261,7 +272,37 @@ def group_visualize_data(
         def key(kv):
             return kv[1], none_key(kv[0]), value_key(kv[0])
     
-    return dict(sorted(((k, sum(v)) for k,v in rslt.items() if v), key=key, reverse=reverse))
+    lst = [(k, sum(v)) for k,v in rslt.items() if v]
+    if not lst or limite_top == 0:
+        return {}
+    
+    def sort(lst):
+        return sorted(lst, key=key, reverse=reverse)
+    
+    if limite_top is None:
+        return dict(sort(lst))
+    if limite_top > 0 and len(lst) <= limite_top:
+        return dict(sort(lst))
+    if limite_top < 0 and len(lst) <= -limite_top:
+        return dict(sort(lst))
+    
+    if limite_top > 0:
+        low = min(sorted(v for k,v in lst)[-limite_top:])
+        lst = sort(((k,v) for k,v in lst if v >= low))
+    
+    if limite_top < 0:
+        limite_top = -limite_top
+        low = max(sorted(v for k,v in lst)[:limite_top])
+        lst = sort((k,v) for k,v in lst if v <= low)
+    
+    lst.reverse()
+    while len(lst) > limite_top:
+        for i,(k,v) in enumerate(lst):
+            if v == low:
+                break
+        del lst[i]
+    
+    return dict(sort(lst))
 
 
 class QColorWidget(QWidget):
@@ -280,11 +321,14 @@ class VisualizeMetadataDialog(Dialog):
     last_group_sort: GroupSort = GroupSort.size_descending
     last_date_group: DateGroup = DateGroup.day
     last_chart: Chart = next(iter(CHARTS))
+    last_limite_top: int = 50
+    last_export_all: bool = False
 
     def __init__(self):
         self.raw_data: Dict[Union[str, bool, datetime, int], int] = {}
         self.data: Dict[str, int] = {}
         self.current_field: str = None
+        self.options = GroupOption()
         Dialog.__init__(self,
             title=self.TITLE,
             name='plugin.VisualizeMetadata:VisualizeMetadataDialog',
@@ -323,6 +367,13 @@ class VisualizeMetadataDialog(Dialog):
         self.selected_chart = KeyValueComboBox(CHARTS, selected_key=self.last_chart, parent=self)
         self.selected_chart.currentIndexChanged.connect(self.refresh_chart)
         
+        self.limite_top = QSpinBox(self)
+        self.limite_top.setMinimum(0)
+        self.limite_top.setMaximum(100)
+        self.limite_top.setValue(self.last_limite_top)
+        self.limite_top.setSpecialValueText(_('No limit'))
+        self.limite_top.valueChanged.connect(self.refresh)
+        
         group_sort = {n:n._value_ for n in GroupSort._member_map_.values()}
         self.group_sort = KeyValueComboBox(group_sort, selected_key=self.last_group_sort, parent=self)
         self.group_sort.currentIndexChanged.connect(self.refresh)
@@ -338,9 +389,17 @@ class VisualizeMetadataDialog(Dialog):
         self.exclude_none = QCheckBox(_('Exclude books without value'), self)
         self.exclude_none.checkStateChanged.connect(self.refresh)
         
+        self.export_all = QCheckBox(_('Export all data'), self)
+        self.export_all.setChecked(self.last_export_all)
+        self.export_all.setToolTip(
+            _('Export all the data of the current scope, instead of only the range limited by the Top setting.')
+        )
+        self.export_all.checkStateChanged.connect(self.export_all_changed)
+        
         h = QHBoxLayout()
         l.addLayout(h)
-        h.addWidget(self.selected_chart)
+        h.addWidget(QLabel(_('Limit to top:'), self))
+        h.addWidget(self.limite_top)
         h.addWidget(self.group_sort)
         h.addWidget(self.label_group)
         h.addWidget(self.date_group)
@@ -354,8 +413,11 @@ class VisualizeMetadataDialog(Dialog):
         
         h = QHBoxLayout()
         l.addLayout(h)
+        h.addWidget(self.selected_chart)
+        h.addSpacing(dpr(30))
         h.addWidget(csv)
         h.addWidget(json)
+        h.addWidget(self.export_all)
         h.addStretch()
         lsize = l.sizeHint()
         
@@ -409,41 +471,61 @@ class VisualizeMetadataDialog(Dialog):
         self.label_group.setVisible(fm['datatype'] == 'datetime')
         self.date_group.setVisible(fm['datatype'] == 'datetime')
         
-        self.data = group_visualize_data(
-            field=self.current_field,
-            data=self.raw_data,
-            group_sort=self.group_sort.selected_key(),
-            date_group=self.date_group.selected_key(),
-            exclude_none=self.exclude_none.isChecked(),
-        )
+        self.options['field'] = self.current_field
+        self.options['group_sort'] = self.group_sort.selected_key()
+        self.options['date_group'] = self.date_group.selected_key()
+        self.options['exclude_none'] = self.exclude_none.isChecked()
+        limite_top = self.limite_top.value()
+        if limite_top <= 0:
+            limite_top = None
+        self.options['limite_top'] = limite_top
         
+        self.data = group_visualize_data(
+            data=self.raw_data,
+            **self.options,
+        )
         self.legends.replaceDatas(self.data.items())
         self.chart.updateScrollbarRanges()
 
-    def export_csv(self):
+    def export_all_changed(self):
+        VisualizeMetadataAction.last_export_all = self.export_all.isChecked()
+
+    def get_export_data(self):
         if not self.data:
+            return
+        if self.export_all.isChecked():
+            return group_visualize_data(
+                data=self.raw_data,
+                **self.options,
+            )
+        return self.data
+
+    def export_csv(self):
+        data = self.get_export_data()
+        if not data:
             return
         file = pick_file_to_export(self.current_field, 'csv', self)
         if not file:
             return
         no_value = f'<{NO_VALUE}>'
+        field_name = self.field_selected.key_text_map[self.current_field].replace('"', '""')
         with open(file, 'w', newline='\n', encoding='utf-8') as f:
             f.write('\ufeff')  # UTF-8 BOM
-            field_name = self.field_selected.key_text_map[self.current_field].replace('"', '""')
             f.write('"{}","{}"\n'.format(field_name, 'Count'))
-            for k,v in self.data.items():
+            for k,v in data.items():
                 if k is None:
                     k = no_value
                 f.write('"{}",{}\n'.format(k.replace('"', '""'), v))
 
     def export_json(self):
-        import json
-        if not self.data:
+        data = self.get_export_data()
+        if not data:
             return
+        import json
         file = pick_file_to_export(self.current_field, 'json', self)
         if not file:
             return
         no_value = f'<{NO_VALUE}>'
-        data = {(no_value if k is None else k):v for k,v in self.data.items()}
+        data = {(no_value if k is None else k):v for k,v in data.items()}
         with open(file, 'w', newline='\n', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
