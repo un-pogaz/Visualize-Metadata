@@ -101,6 +101,18 @@ class Chart:
     def draw(self, parent: QWidget, painter: QPainter, rect: QRect, values: List[ColorData]):
         raise NotImplementedError('draw() need to be overridden in a subclass')
 
+    def drawNoValue(self, parent: QWidget, painter: QPainter, rect: QRect):
+        offest = round(10 * parent.devicePixelRatioF())
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.TextAntialiasing)
+        font = QFont(parent.font())
+        font.setItalic(True)
+        painter.setFont(font)
+        painter.drawText(
+            rect.adjusted(offest, offest, 0, 0),
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop,
+            f'<{NO_VALUE}>',
+        )
+
 
 @dataclass(unsafe_hash=True)
 class LegendChart(Chart):
@@ -223,6 +235,9 @@ class LegendChart(Chart):
                 continue
             pixmap = self.render_legend_as_pixmap(parent, data, color_w, count_w, text_w)
             painter.drawPixmap(-rect.x(), y - rect.y(), pixmap)
+
+    def drawNoValue(self, parent: QWidget, painter: QPainter, rect: QRect):
+        pass
 
 
 @dataclass(unsafe_hash=True)
@@ -429,4 +444,7 @@ class ChartViewWidget(QAbstractScrollArea):
         visible_rect = viewport.rect().translated(scroll_x, scroll_y)
         with QPainter(viewport) as painter:
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-            self.chart.draw(self, painter, visible_rect, self.values)
+            if self.values:
+                self.chart.draw(self, painter, visible_rect, self.values)
+            else:
+                self.chart.drawNoValue(self, painter, visible_rect)
