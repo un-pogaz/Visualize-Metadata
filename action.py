@@ -238,26 +238,30 @@ def group_visualize_data(
     if exclude_none:
         rslt.pop(None, None)
     
-    reverse = group_sort in {GroupSort.alphabetical_descending, GroupSort.size_descending}
-    def key(k):
+    if group_sort in {GroupSort.alphabetical_descending, GroupSort.size_descending}:
+        reverse = True
+        def none_key(v):
+            return int(v is not None)
+    else:
+        reverse = False
+        def none_key(v):
+            return int(v is None)
+    
+    def value_key(k):
         if not k:
             return
         if fm['datatype'] == 'rating':
             return k.count('★'), k.count('⯨')
         return sort_key(k)
-    def f(x):
-        return x
-    if group_sort == GroupSort.alphabetical_ascending:
-        def f(kv):
-            return bool(kv[0] is None), key(kv[0])
-    if group_sort == GroupSort.alphabetical_descending:
-        def f(kv):
-            return bool(kv[0] is not None), key(kv[0])
-    if group_sort in {GroupSort.size_ascending, GroupSort.size_descending}:
-        def f(kv):
-            return kv[1], key(kv[0])
     
-    return dict(sorted(((k, sum(v)) for k,v in rslt.items() if v), key=f, reverse=reverse))
+    if group_sort in {GroupSort.alphabetical_ascending, GroupSort.alphabetical_descending}:
+        def key(kv):
+            return none_key(kv[0]), value_key(kv[0])
+    if group_sort in {GroupSort.size_ascending, GroupSort.size_descending}:
+        def key(kv):
+            return kv[1], none_key(kv[0]), value_key(kv[0])
+    
+    return dict(sorted(((k, sum(v)) for k,v in rslt.items() if v), key=key, reverse=reverse))
 
 
 class QColorWidget(QWidget):
