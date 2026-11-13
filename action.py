@@ -133,17 +133,17 @@ def get_analyze_fields() -> Set[str]:
     return rslt
 
 
+class AnalyzeScope(Enum):
+    library = _('Entire library')
+    virtual = _('Virtual library')
+    search = _('Current search')
+
+
 class GroupSort(Enum):
     alphabetical_ascending = _('Alphabetical (ascending)')
     alphabetical_descending = _('Alphabetical (descending)')
     size_ascending = _('Size (ascending)')
     size_descending = _('Size (descending)')
-
-
-class VisualizeScope(Enum):
-    library = _('Entire library')
-    virtual = _('Virtual library')
-    search = _('Current search')
 
 
 class DateGroup(Enum):
@@ -154,7 +154,7 @@ class DateGroup(Enum):
     minute = _('Minute')
 
 
-def get_visualize_data(field: str, visualize_scope: VisualizeScope) -> Dict[Union[str, bool, datetime, int], int]:
+def get_visualize_data(field: str, analyze_scope: AnalyzeScope) -> Dict[Union[str, bool, datetime, int], int]:
     db = current_db().new_api
     field_obj = db.fields[field]
     rslt = defaultdict(set)
@@ -180,9 +180,9 @@ def get_visualize_data(field: str, visualize_scope: VisualizeScope) -> Dict[Unio
     else:
         raise NotImplementedError(_('The type of the field {!r} is not supported.').format(field))
     
-    if visualize_scope == VisualizeScope.virtual:
+    if analyze_scope == AnalyzeScope.virtual:
         scope_ids = set(get_BookIds_virtual())
-    elif visualize_scope == VisualizeScope.search:
+    elif analyze_scope == AnalyzeScope.search:
         scope_ids = set(get_BookIds_search())
     else:
         scope_ids = set(get_BookIds_all())
@@ -305,18 +305,18 @@ class VisualizeMetadataDialog(Dialog):
             ((n,field_name(n, fm)) for n in get_analyze_fields()),
             key=lambda x:sort_key(x[1]),
         ))
-        visualize_scope = {n:n._value_ for n in VisualizeScope._member_map_.values()}
+        analyze_scope = {n:n._value_ for n in AnalyzeScope._member_map_.values()}
         self.field_selected = KeyValueComboBox(analyze_fields, parent=self)
         self.field_selected.setCurrentIndex(-1)
-        self.visualize_scope = KeyValueComboBox(visualize_scope, parent=self)
+        self.analyze_scope = KeyValueComboBox(analyze_scope, parent=self)
         self.button_reload = QPushButton(get_icon('view-refresh.png'), '', self)
-        self.button_reload.setToolTip(_('Refresh the visualization'))
+        self.button_reload.setToolTip(_('Reload the data for the visualization'))
         self.button_reload.clicked.connect(self.load_data)
         
         h = QHBoxLayout()
         l.addLayout(h)
         h.addWidget(self.field_selected)
-        h.addWidget(self.visualize_scope)
+        h.addWidget(self.analyze_scope)
         h.addWidget(self.button_reload)
         h.addStretch()
         
@@ -388,7 +388,7 @@ class VisualizeMetadataDialog(Dialog):
         self.current_field = self.field_selected.selected_key()
         self.raw_data = get_visualize_data(
             field=self.current_field,
-            visualize_scope=self.visualize_scope.selected_key(),
+            analyze_scope=self.analyze_scope.selected_key(),
         )
         self.refresh()
 
