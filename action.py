@@ -391,7 +391,7 @@ class VisualizeMetadataDialog(Dialog):
     def refresh(self):
         VisualizeMetadataDialog.last_group_sort = self.group_sort.selected_key()
         VisualizeMetadataDialog.last_date_group = self.date_group.selected_key()
-        if self.field_selected.currentIndex() < 0 or not self.current_field:
+        if not self.current_field:
             return
         
         db = current_db()
@@ -420,12 +420,12 @@ class VisualizeMetadataDialog(Dialog):
         no_value = f'<{NO_VALUE}>'
         with open(file, 'w', newline='\n', encoding='utf-8') as f:
             f.write('\ufeff')  # UTF-8 BOM
-            field_name = self.field_selected.currentText().replace('"', '""')
-            f.write('"{}","{}"\n'.format('Count', field_name))
+            field_name = self.field_selected.key_text_map[self.current_field].replace('"', '""')
+            f.write('"{}","{}"\n'.format(field_name, 'Count'))
             for k,v in self.data.items():
                 if k is None:
                     k = no_value
-                f.write('{},"{}"\n'.format(v, k.replace('"', '""')))
+                f.write('"{}",{}\n'.format(k.replace('"', '""'), v))
 
     def export_json(self):
         import json
