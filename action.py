@@ -493,6 +493,8 @@ class VisualizeMetadataDialog(Dialog):
     def get_export_data(self):
         if not self.data:
             return
+        if len(self.data) < self.limite_top.value():
+            return self.data
         if self.export_all.isChecked():
             return group_visualize_data(
                 data=self.raw_data,
