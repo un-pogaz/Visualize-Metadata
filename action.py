@@ -10,29 +10,9 @@ except NameError:
     pass  # load_translations() added in calibre 1.9
 
 try:
-    from qt.core import (
-        QCheckBox,
-        QHBoxLayout,
-        QLabel,
-        QPushButton,
-        QSpinBox,
-        QSplitter,
-        Qt,
-        QToolButton,
-        QVBoxLayout,
-    )
+    from qt.core import QCheckBox, QHBoxLayout, QLabel, QPushButton, QSpinBox, QSplitter, Qt, QToolButton, QVBoxLayout
 except ImportError:
-    from PyQt5.Qt import (
-        QCheckBox,
-        QHBoxLayout,
-        QLabel,
-        QPushButton,
-        QSpinBox,
-        QSplitter,
-        Qt,
-        QToolButton,
-        QVBoxLayout,
-    )
+    from PyQt5.Qt import QCheckBox, QHBoxLayout, QLabel, QPushButton, QSpinBox, QSplitter, Qt, QToolButton, QVBoxLayout
 
 import os
 from collections import defaultdict
@@ -60,8 +40,8 @@ PLUGIN_ICON = 'images/plugin.png'
 CHARTS = {
     PieChart(outline_width=0): _('Pie'),
     PieChart(outline_width=2): _('Pie (outline)'),
-    BarChart(bar_width=25, bar_gap=5): _('Bar (with gap)'),
     BarChart(bar_width=25, bar_gap=0): _('Bar'),
+    BarChart(bar_width=25, bar_gap=5): _('Bar (with gap)'),
 }
 
 

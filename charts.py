@@ -141,7 +141,6 @@ class LegendChart(Chart):
                     continue
                 dic[len(v)].add(v)
             keys = sorted(dic, reverse=True)[:num]
-            print(keys)
             lst = []
             for k in keys:
                 lst.extend(dic[k])
@@ -155,7 +154,7 @@ class LegendChart(Chart):
             lst1.add(d.name)
             lst2.add(LEGEND_FMT.format(d.count))
         if None in lst1:
-            fmi.boundingRect(NO_VALUE).width()
+            text_w.append(fmi.boundingRect(NO_VALUE).width())
             lst1.discard(None)
         for v in longest(lst1, 5):
             text_w.append(fm.boundingRect(v).width())
@@ -379,7 +378,7 @@ class BarChart(Chart):
         vmax = float(max((e.count for e in values), default=0))
         for i,data in enumerate(values):
             x = i * bar_gap_width
-            if x > rect.x() + rect.height() + bar_gap_width:
+            if x > rect.x() + rect.width() + bar_gap_width:
                 break
             if x < rect.x() - bar_width:
                 continue
@@ -411,6 +410,10 @@ class ChartViewWidget(QAbstractScrollArea):
         lst = []
         lst.extend((x.name, x.count) for x in self.values)
         lst.extend(datas)
+        self.values.clear()
+        if not lst:
+            self.updateScrollbarRanges()
+            return
         
         def key(x: Tuple[int, Tuple[str, int]]):
             # None at the end, count, name
@@ -448,7 +451,6 @@ class ChartViewWidget(QAbstractScrollArea):
             if next(icount) > 10_000:
                 break
         
-        self.values.clear()
         for c,n,v in lst:
             self.values.append(ColorData(
                 color=c,
