@@ -12,32 +12,26 @@ except NameError:
 try:
     from qt.core import (
         QCheckBox,
-        QColor,
         QHBoxLayout,
         QLabel,
-        QPalette,
         QPushButton,
         QSpinBox,
         QSplitter,
         Qt,
         QToolButton,
         QVBoxLayout,
-        QWidget,
     )
 except ImportError:
     from PyQt5.Qt import (
         QCheckBox,
-        QColor,
         QHBoxLayout,
         QLabel,
-        QPalette,
         QPushButton,
         QSpinBox,
         QSplitter,
         Qt,
         QToolButton,
         QVBoxLayout,
-        QWidget,
     )
 
 import os
@@ -305,17 +299,6 @@ def group_visualize_data(
     return dict(sort(lst))
 
 
-class QColorWidget(QWidget):
-    def __init__(self, color: QColor, parent=None):
-        QWidget.__init__(self)
-        self.color = color
-        pal = self.palette()
-        pal.setColor(QPalette.ColorRole.Base, color)
-        pal.setColor(QPalette.ColorRole.Window, color)
-        self.setPalette(pal)
-        self.setAutoFillBackground(True)
-
-
 class VisualizeMetadataDialog(Dialog):
     TITLE = _('Visualize Metadata')
     last_group_sort: GroupSort = GroupSort.size_descending
@@ -446,8 +429,8 @@ class VisualizeMetadataDialog(Dialog):
     def load_data(self):
         if self.field_selected.currentIndex() < 0:
             return
-        self.setWindowTitle(self.TITLE + ' :: ' + self.field_selected.currentText())
         self.current_field = self.field_selected.selected_key()
+        self.setWindowTitle(self.TITLE + ' :: ' + self.current_field)
         self.raw_data = get_visualize_data(
             field=self.current_field,
             analyze_scope=self.analyze_scope.selected_key(),
