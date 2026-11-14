@@ -48,6 +48,7 @@ except ImportError:
         QWidget,
     )
 
+from collections import defaultdict
 from dataclasses import dataclass
 from itertools import count, cycle
 from typing import Iterable, List, NamedTuple, Tuple
@@ -132,19 +133,37 @@ class LegendChart(Chart):
         font = QFont(parent.font())
         font.setItalic(True)
         fmi = QFontMetrics(font)
-        text_w = [0]
-        for text in sorted(values, key=lambda x:len(x.name or NO_VALUE), reverse=True)[:5]:
-            text = text.name
-            if not text:
-                text_w.append(fmi.boundingRect(NO_VALUE).width())
-            else:
-                text_w.append(fm.boundingRect(text).width())
         
-        max_count = max((x.count for x in values), default='')
-        count_w = fm.boundingRect(LEGEND_FMT.format(max_count)).width()
+        def longest(values, num):
+            dic = defaultdict(set)
+            for v in values:
+                if not v:
+                    continue
+                dic[len(v)].add(v)
+            keys = sorted(dic, reverse=True)[:num]
+            print(keys)
+            lst = []
+            for k in keys:
+                lst.extend(dic[k])
+            return lst
+        
+        text_w = [0]
+        count_w = [0]
+        lst1 = set()
+        lst2 = set()
+        for d in values:
+            lst1.add(d.name)
+            lst2.add(LEGEND_FMT.format(d.count))
+        if None in lst1:
+            fmi.boundingRect(NO_VALUE).width()
+            lst1.discard(None)
+        for v in longest(lst1, 5):
+            text_w.append(fm.boundingRect(v).width())
+        for v in longest(lst2, 1):
+            count_w.append(fm.boundingRect(v).width())
         
         dpr = parent.devicePixelRatioF()
-        return round(self.entry_height * dpr), count_w, max(text_w)
+        return round(self.entry_height * dpr), max(count_w), max(text_w)
     
     def calcMinimumSize(self, parent: QWidget, values: List[ColorData]) -> QSize:
         if not values:
