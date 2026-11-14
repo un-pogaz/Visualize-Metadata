@@ -419,7 +419,14 @@ class ChartViewWidget(QAbstractScrollArea):
             lst[idx][0] = lst[idx+1][0]
             lst[idx+1][0] = c
             idx = adjacent_color()
-            if next(icount) > 1_000:
+            if next(icount) > 1000:
+                break
+        
+        idx = adjacent_color()
+        icount = count()
+        while idx is not None:
+            lst[idx][0] = next(icolors)
+            if next(icount) > 10_000:
                 break
         
         self.values.clear()
