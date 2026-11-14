@@ -173,7 +173,7 @@ class GroupOption(TypedDict):
     field: str
     group_sort: GroupSort
     date_group: DateGroup
-    exclude_none: bool
+    include_none: bool
     limite_top: Union[int, None]
 
 
@@ -182,7 +182,7 @@ def group_visualize_data(
     field: str,
     group_sort: GroupSort,
     date_group: DateGroup,
-    exclude_none: bool,
+    include_none: bool,
     limite_top: Union[int, None],
 ) -> Dict[str, int]:
     db = current_db().new_api
@@ -220,7 +220,7 @@ def group_visualize_data(
             continue
         rslt[f(k)].add(v)
     
-    if exclude_none:
+    if not include_none:
         rslt.pop(None, None)
     
     if group_sort in {GroupSort.alphabetical_descending, GroupSort.size_descending}:
@@ -352,8 +352,8 @@ class VisualizeMetadataDialog(Dialog):
         self.date_group.currentIndexChanged.connect(self.refresh)
         self.date_group.setVisible(False)
         
-        self.exclude_none = QCheckBox(_('Exclude books without value'), self)
-        self.exclude_none.checkStateChanged.connect(self.refresh)
+        self.include_none = QCheckBox(_('Include books without value'), self)
+        self.include_none.checkStateChanged.connect(self.refresh)
         
         self.export_all = QCheckBox(_('Export all data'), self)
         self.export_all.setChecked(self.last_export_all)
@@ -369,7 +369,7 @@ class VisualizeMetadataDialog(Dialog):
         h.addWidget(self.group_sort)
         h.addWidget(self.label_group)
         h.addWidget(self.date_group)
-        h.addWidget(self.exclude_none)
+        h.addWidget(self.include_none)
         h.addStretch()
         
         csv = QPushButton('Export CSV', self)
@@ -445,7 +445,7 @@ class VisualizeMetadataDialog(Dialog):
         self.options['field'] = self.current_field
         self.options['group_sort'] = self.group_sort.selected_key()
         self.options['date_group'] = self.date_group.selected_key()
-        self.options['exclude_none'] = self.exclude_none.isChecked()
+        self.options['include_none'] = self.include_none.isChecked()
         limite_top = self.limite_top.value()
         if limite_top <= 0:
             limite_top = None
