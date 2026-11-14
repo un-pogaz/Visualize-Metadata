@@ -48,7 +48,7 @@ CHARTS = {
 class VisualizeMetadataAction(InterfaceAction):
     name = PLUGIN_NAME
     # Create our top-level menu/toolbar action (text, icon_path, tooltip, keyboard shortcut)
-    action_spec = (PLUGIN_NAME, None, _('Visualize Metadata in your library'), None)
+    action_spec = (PLUGIN_NAME, None, _('Visualize Metadata in your library'), '')
     popup_type = QToolButton.MenuButtonPopup
     action_type = 'current'
     dont_add_to = frozenset(['context-menu-device'])
