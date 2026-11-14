@@ -340,11 +340,14 @@ class VisualizeMetadataDialog(Dialog):
         self.button_reload.setToolTip(_('Reload the data for the visualization'))
         self.button_reload.clicked.connect(self.load_data)
         
+        self.label_curent = QLabel('', self)
+        
         h = QHBoxLayout()
         l.addLayout(h)
         h.addWidget(self.field_selected)
         h.addWidget(self.analyze_scope)
         h.addWidget(self.button_reload)
+        h.addWidget(self.label_curent)
         h.addStretch()
         
         self.selected_chart = KeyValueComboBox(CHARTS, selected_key=self.last_chart, parent=self)
@@ -375,7 +378,7 @@ class VisualizeMetadataDialog(Dialog):
         self.export_all = QCheckBox(_('Export all data'), self)
         self.export_all.setChecked(self.last_export_all)
         self.export_all.setToolTip(
-            _('Export all the data of the current scope, instead of only the range limited by the Top setting.')
+            _('Export the all data of the current scope, instead of only the range limited by the Top setting')
         )
         self.export_all.checkStateChanged.connect(self.export_all_changed)
         
@@ -430,7 +433,12 @@ class VisualizeMetadataDialog(Dialog):
         if self.field_selected.currentIndex() < 0:
             return
         self.current_field = self.field_selected.selected_key()
-        self.setWindowTitle(self.TITLE + ' :: ' + self.current_field)
+        self.label_curent.setText(
+            _('Current data: {}, {}').format(
+                self.field_selected.currentText(),
+                self.analyze_scope.currentText(),
+        ))
+        self.setWindowTitle(self.TITLE + ' :: ' + self.field_selected.currentText())
         self.raw_data = get_visualize_data(
             field=self.current_field,
             analyze_scope=self.analyze_scope.selected_key(),
