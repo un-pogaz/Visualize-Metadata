@@ -96,20 +96,23 @@ class ColorData(NamedTuple):
 
 @dataclass
 class Chart:
-    def calcMinimumSize(self, parent: QWidget, values: List[ColorData]) -> QSize:
+    def setParent(self, parent: QWidget):
+        self.parent = parent
+
+    def calcMinimumSize(self, values: List[ColorData]) -> QSize:
         raise NotImplementedError('calcMinimumSize() need to be overridden in a subclass')
 
-    def calcScrollPageStep(self, parent: QWidget) -> QSize:
-        step = round(10 * parent.devicePixelRatioF())
+    def calcScrollPageStep(self) -> QSize:
+        step = round(10 * self.parent.devicePixelRatioF())
         return QSize(step, step)
 
-    def draw(self, parent: QWidget, painter: QPainter, rect: QRect, values: List[ColorData]):
+    def draw(self, painter: QPainter, rect: QRect, values: List[ColorData]):
         raise NotImplementedError('draw() need to be overridden in a subclass')
 
-    def drawNoValue(self, parent: QWidget, painter: QPainter, rect: QRect):
-        offest = round(10 * parent.devicePixelRatioF())
+    def drawNoValue(self, painter: QPainter, rect: QRect):
+        offest = round(10 * self.parent.devicePixelRatioF())
         painter.setRenderHint(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.TextAntialiasing)
-        font = QFont(parent.font())
+        font = QFont(self.parent.font())
         font.setItalic(True)
         painter.setFont(font)
         painter.drawText(
@@ -125,12 +128,12 @@ class LegendChart(Chart):
     count_margin: int = 10
     text_margin: int = 5
 
-    def calc_legend_size(self, parent: QWidget, values: List[ColorData]) -> Tuple[int, int, int]:
+    def calc_legend_size(self, values: List[ColorData]) -> Tuple[int, int, int]:
         if not values:
             return 0, 0, 0
         
-        fm = parent.fontMetrics()
-        font = QFont(parent.font())
+        fm = self.parent.fontMetrics()
+        font = QFont(self.parent.font())
         font.setItalic(True)
         fmi = QFontMetrics(font)
         
@@ -161,45 +164,44 @@ class LegendChart(Chart):
         for v in longest(lst2, 1):
             count_w.append(fm.boundingRect(v).width())
         
-        dpr = parent.devicePixelRatioF()
+        dpr = self.parent.devicePixelRatioF()
         return round(self.entry_height * dpr), max(count_w), max(text_w)
     
-    def calcMinimumSize(self, parent: QWidget, values: List[ColorData]) -> QSize:
+    def calcMinimumSize(self, values: List[ColorData]) -> QSize:
         if not values:
             return QSize(0, 0)
         
-        dpr = parent.devicePixelRatioF()
+        dpr = self.parent.devicePixelRatioF()
         count_margin = round(self.count_margin * dpr)
         text_margin = round(self.text_margin * dpr)
-        color_w, count_w, text_w = self.calc_legend_size(parent, values)
+        color_w, count_w, text_w = self.calc_legend_size(values)
         height = len(values) * (self.entry_height * dpr)
         width = color_w + count_w + text_w
         width += count_margin + text_margin + max(count_margin, text_margin) / 2
         return QSizeF(width, height).toSize()
 
-    def calcScrollPageStep(self, parent: QWidget) -> QSize:
-        dpr = parent.devicePixelRatioF()
-        size = Chart.calcScrollPageStep(self, parent)
+    def calcScrollPageStep(self) -> QSize:
+        dpr = self.parent.devicePixelRatioF()
+        size = Chart.calcScrollPageStep(self)
         size.setHeight(round(self.entry_height * dpr))
         return size
 
     def render_legend_as_pixmap(
         self,
-        parent: QWidget,
         legend: ColorData,
         color_width: int,
         count_width: int,
         text_width: int,
     ):
-        dpr = parent.devicePixelRatioF()
+        dpr = self.parent.devicePixelRatioF()
         count_margin = round(self.count_margin * dpr)
         text_margin = round(self.text_margin * dpr)
         height = round(self.entry_height * dpr)
         width = color_width + count_width + text_width
         width += count_margin + text_margin + max(count_margin, text_margin)
         
-        text_color = parent.palette().text().color()
-        font = QFont(parent.font())
+        text_color = self.parent.palette().text().color()
+        font = QFont(self.parent.font())
         
         key = ''.join(map(str, (
             __name__,
@@ -251,20 +253,20 @@ class LegendChart(Chart):
         QPixmapCache.insert(key, rslt)
         return rslt
 
-    def draw(self, parent: QWidget, painter: QPainter, rect: QRect, values: List[ColorData]):
-        dpr = parent.devicePixelRatioF()
+    def draw(self, painter: QPainter, rect: QRect, values: List[ColorData]):
+        dpr = self.parent.devicePixelRatioF()
         entry_height = round(self.entry_height * dpr)
-        color_w, count_w, text_w = self.calc_legend_size(parent, values)
+        color_w, count_w, text_w = self.calc_legend_size(values)
         for i,data in enumerate(values):
             y = i * entry_height
             if y > rect.y() + rect.height():
                 break
             if y < rect.y() - entry_height:
                 continue
-            pixmap = self.render_legend_as_pixmap(parent, data, color_w, count_w, text_w)
+            pixmap = self.render_legend_as_pixmap(data, color_w, count_w, text_w)
             painter.drawPixmap(-rect.x(), y - rect.y(), pixmap)
 
-    def drawNoValue(self, parent: QWidget, painter: QPainter, rect: QRect):
+    def drawNoValue(self, painter: QPainter, rect: QRect):
         pass
 
 
@@ -272,10 +274,10 @@ class LegendChart(Chart):
 class PieChart(Chart):
     outline_width: int = 0
 
-    def calcMinimumSize(self, parent: QWidget, values: List[ColorData]) -> QSize:
+    def calcMinimumSize(self, values: List[ColorData]) -> QSize:
         return QSize(0, 0)
 
-    def draw(self, parent: QWidget, painter: QPainter, rect: QRect, values: List[ColorData]):
+    def draw(self, painter: QPainter, rect: QRect, values: List[ColorData]):
         # ensure square
         size = min(rect.height(), rect.width())
         rect = QRect(rect)
@@ -284,7 +286,7 @@ class PieChart(Chart):
         
         # apply outline
         if self.outline_width > 0:
-            dpr = parent.devicePixelRatioF()
+            dpr = self.parent.devicePixelRatioF()
             width = self.outline_width * dpr
             offset = width / 2.0
             outline_pen = QPen(Qt.GlobalColor.white, width)
@@ -348,24 +350,24 @@ class BarChart(Chart):
     bar_gap: int = 5
     force_bar: bool = True
 
-    def calcMinimumSize(self, parent: QWidget, values: List[ColorData]) -> QSize:
+    def calcMinimumSize(self, values: List[ColorData]) -> QSize:
         if not values:
             return QSize(0, 0)
         
-        dpr = parent.devicePixelRatioF()
+        dpr = self.parent.devicePixelRatioF()
         lenght = len(values)
         bar_w = self.bar_width * lenght * dpr
         gap_w = self.bar_gap * (lenght - 1) * dpr
         return QSizeF(bar_w + gap_w, 0).toSize()
 
-    def calcScrollPageStep(self, parent: QWidget) -> QSize:
-        dpr = parent.devicePixelRatioF()
-        size = Chart.calcScrollPageStep(self, parent)
+    def calcScrollPageStep(self) -> QSize:
+        dpr = self.parent.devicePixelRatioF()
+        size = Chart.calcScrollPageStep(self)
         size.setWidth(round((self.bar_width + self.bar_gap) * dpr))
         return size
 
-    def draw(self, parent: QWidget, painter: QPainter, rect: QRect, values: List[ColorData]):
-        dpr = parent.devicePixelRatioF()
+    def draw(self, painter: QPainter, rect: QRect, values: List[ColorData]):
+        dpr = self.parent.devicePixelRatioF()
         bar_width = round(self.bar_width * dpr)
         bar_gap = round(self.bar_gap * dpr)
         bar_gap_width = bar_width + bar_gap
@@ -473,12 +475,13 @@ class ChartViewWidget(QAbstractScrollArea):
 
     def setChart(self, chart: Chart):
         self.chart = chart
+        self.chart.setParent(self)
         self.updateScrollbarRanges()
 
     def updateScrollbarRanges(self, update=True):
         viewport = self.viewport()
-        minimum_size = self.chart.calcMinimumSize(self, self.values)
-        scroll_page_step = self.chart.calcScrollPageStep(self)
+        minimum_size = self.chart.calcMinimumSize(self.values)
+        scroll_page_step = self.chart.calcScrollPageStep()
         
         sb = self.verticalScrollBar()
         sb.setPageStep(scroll_page_step.height())
@@ -505,6 +508,6 @@ class ChartViewWidget(QAbstractScrollArea):
         with QPainter(viewport) as painter:
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
             if self.values:
-                self.chart.draw(self, painter, visible_rect, self.values)
+                self.chart.draw(painter, visible_rect, self.values)
             else:
-                self.chart.drawNoValue(self, painter, visible_rect)
+                self.chart.drawNoValue(painter, visible_rect)
