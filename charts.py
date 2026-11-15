@@ -24,7 +24,6 @@ try:
         QRect,
         QResizeEvent,
         QSize,
-        QSizeF,
         Qt,
         QWidget,
     )
@@ -43,7 +42,6 @@ except ImportError:
         QRect,
         QResizeEvent,
         QSize,
-        QSizeF,
         Qt,
         QWidget,
     )
@@ -110,7 +108,7 @@ class Chart:
         raise NotImplementedError('draw() need to be overridden in a subclass')
 
     def drawNoValue(self, painter: QPainter, rect: QRect):
-        offest = round(10 * self.parent.devicePixelRatioF())
+        offest = round(5 * self.parent.devicePixelRatioF())
         painter.setRenderHint(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.TextAntialiasing)
         font = QFont(self.parent.font())
         font.setItalic(True)
@@ -175,10 +173,10 @@ class LegendChart(Chart):
         count_margin = round(self.count_margin * dpr)
         text_margin = round(self.text_margin * dpr)
         color_w, count_w, text_w = self.calc_legend_size(values)
-        height = len(values) * (self.entry_height * dpr)
+        height = round(len(values) * (self.entry_height * dpr))
         width = color_w + count_w + text_w
-        width += count_margin + text_margin + max(count_margin, text_margin) / 2
-        return QSizeF(width, height).toSize()
+        width += count_margin + text_margin + round(max(count_margin, text_margin) / 2)
+        return QSize(width, height)
 
     def calcScrollPageStep(self) -> QSize:
         dpr = self.parent.devicePixelRatioF()
@@ -198,7 +196,7 @@ class LegendChart(Chart):
         text_margin = round(self.text_margin * dpr)
         height = round(self.entry_height * dpr)
         width = color_width + count_width + text_width
-        width += count_margin + text_margin + max(count_margin, text_margin)
+        width += count_margin + text_margin
         
         text_color = self.parent.palette().text().color()
         font = QFont(self.parent.font())
@@ -356,9 +354,9 @@ class BarChart(Chart):
         
         dpr = self.parent.devicePixelRatioF()
         lenght = len(values)
-        bar_w = self.bar_width * lenght * dpr
-        gap_w = self.bar_gap * (lenght - 1) * dpr
-        return QSizeF(bar_w + gap_w, 0).toSize()
+        bar_w = round(self.bar_width * lenght * dpr)
+        gap_w = round(self.bar_gap * (lenght - 1) * dpr)
+        return QSize(bar_w + gap_w, 0)
 
     def calcScrollPageStep(self) -> QSize:
         dpr = self.parent.devicePixelRatioF()
@@ -417,6 +415,7 @@ class ChartViewWidget(QAbstractScrollArea):
             self.updateScrollbarRanges()
             return
         
+        # make the color attribution deterministe
         def key(x: Tuple[int, Tuple[str, int]]):
             # None at the end, count, name
             return not x[1][0], x[1][1], sort_key(x[1][0])
@@ -436,6 +435,7 @@ class ChartViewWidget(QAbstractScrollArea):
                 lc = d[0]
             return None
         
+        # fix adjacent color by swap
         idx = adjacent_color()
         icount = count()
         while idx is not None:
@@ -446,6 +446,7 @@ class ChartViewWidget(QAbstractScrollArea):
             if next(icount) > 1000:
                 break
         
+        # fix adjacent color by brute force
         idx = adjacent_color()
         icount = count()
         while idx is not None:
