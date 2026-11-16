@@ -24,7 +24,7 @@ class ActionVisualizeMetadata(InterfaceActionBase):
     calibre utilities to run without needing to load the GUI libraries.
     '''
     name                    = 'Visualize Metadata'
-    description             = _('Visualize Metadata in your library')
+    description             = _('Visualize metadata statistics in your library')
     supported_platforms     = ['windows', 'osx', 'linux']
     author                  = 'un_pogaz'
     version                 = (1, 0, 0)

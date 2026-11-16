@@ -1,0 +1,421 @@
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"POT-Creation-Date: 2026-11-15 07:56+0100\n"
+"PO-Revision-Date: 2023-08-08 19:22+0200\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Generator: Poedit 3.10\n"
+"X-Poedit-Basepath: ..\n"
+"X-Poedit-SearchPath-0: .\n"
+
+#: __init__.py:27 action.py:51
+msgid "Visualize metadata statistics in your library"
+msgstr ""
+
+#: action.py:41
+msgid "Pie"
+msgstr ""
+
+#: action.py:42
+msgid "Pie (outline)"
+msgstr ""
+
+#: action.py:43
+msgid "Bar"
+msgstr ""
+
+#: action.py:44
+msgid "Bar (with gap)"
+msgstr ""
+
+#: action.py:84
+#, python-brace-format
+msgid "Select folder to export the {} file…"
+msgstr ""
+
+#: action.py:113
+msgid "Entire library"
+msgstr ""
+
+#: action.py:114
+msgid "Virtual library"
+msgstr ""
+
+#: action.py:115
+msgid "Current search"
+msgstr ""
+
+#: action.py:119
+msgid "Alphabetical (ascending)"
+msgstr ""
+
+#: action.py:120
+msgid "Alphabetical (descending)"
+msgstr ""
+
+#: action.py:121
+msgid "Size (ascending)"
+msgstr ""
+
+#: action.py:122
+msgid "Size (descending)"
+msgstr ""
+
+#: action.py:126
+msgid "Year"
+msgstr ""
+
+#: action.py:127
+msgid "Month"
+msgstr ""
+
+#: action.py:128
+msgid "Day"
+msgstr ""
+
+#: action.py:129
+msgid "Hour"
+msgstr ""
+
+#: action.py:130
+msgid "Minute"
+msgstr ""
+
+#: action.py:157
+msgid "The type of the field {!r} is not supported."
+msgstr ""
+
+#: action.py:200
+msgid "Yes"
+msgstr ""
+
+#: action.py:200
+msgid "No"
+msgstr ""
+
+#: action.py:283
+msgid "Visualize Metadata"
+msgstr ""
+
+#: action.py:320
+msgid "Reload the data for the visualization"
+msgstr ""
+
+#: action.py:340
+msgid "No limit"
+msgstr ""
+
+#: action.py:347
+msgid "Group by:"
+msgstr ""
+
+#: action.py:355
+msgid "Include books without value"
+msgstr ""
+
+#: action.py:358
+msgid "Export all data"
+msgstr ""
+
+#: action.py:361
+msgid "Export the all data of the current scope, instead of only the range limited by the Top setting"
+msgstr ""
+
+#: action.py:367
+msgid "Limit to top:"
+msgstr ""
+
+#: action.py:417
+#, python-brace-format
+msgid "Current data: {}, {}"
+msgstr ""
+
+#: charts.py:58
+msgid "no value"
+msgstr ""
+
+#: charts.py:59
+#, python-brace-format
+msgid "{:d}:"
+msgstr ""
+
+#: common_utils/__init__.py:406
+msgid "You cannot configure this plugin before calibre is restarted."
+msgstr ""
+
+#: common_utils/dialogs.py:88 common_utils/dialogs.py:122
+msgid "Keyboard shortcuts"
+msgstr ""
+
+#: common_utils/dialogs.py:125
+msgid "Edit the keyboard shortcuts associated with this plugin"
+msgstr ""
+
+#: common_utils/dialogs.py:141
+msgid "Preferences for:"
+msgstr ""
+
+#: common_utils/dialogs.py:164
+msgid "Clear all settings for this plugin"
+msgstr ""
+
+#: common_utils/dialogs.py:206
+msgid "The changes cannot be applied."
+msgstr ""
+
+#: common_utils/dialogs.py:210
+msgid "Are you sure you want to change your settings in this library for this plugin?"
+msgstr ""
+
+#: common_utils/dialogs.py:211 common_utils/dialogs.py:223
+msgid "Any settings in other libraries or stored in a JSON file in your calibre plugins folder will not be touched."
+msgstr ""
+
+#: common_utils/dialogs.py:222
+msgid "Are you sure you want to clear your settings in this library for this plugin?"
+msgstr ""
+
+#: common_utils/dialogs.py:245
+msgid "View library preferences"
+msgstr ""
+
+#: common_utils/dialogs.py:246
+msgid "View data stored in the library database for this plugin"
+msgstr ""
+
+#: common_utils/dialogs.py:275
+msgid "Cancel"
+msgstr ""
+
+#: common_utils/dialogs.py:285
+#, python-brace-format
+msgid "{PLUGIN_NAME} progress"
+msgstr ""
+
+#: common_utils/dialogs.py:341
+#, python-brace-format
+msgid "Book {:d} of {:d}"
+msgstr ""
+
+#: common_utils/dialogs.py:377
+msgid "Copy to clipboard"
+msgstr ""
+
+#: common_utils/dialogs.py:396
+msgid "Add New Image"
+msgstr ""
+
+#: common_utils/dialogs.py:404
+msgid "&Select image source"
+msgstr ""
+
+#: common_utils/dialogs.py:407
+msgid "From &web domain favicon"
+msgstr ""
+
+#: common_utils/dialogs.py:414
+msgid "From .png &file"
+msgstr ""
+
+#: common_utils/dialogs.py:427
+msgid "&Save as filename:"
+msgstr ""
+
+#: common_utils/dialogs.py:450
+msgid "Select a .png file for the menu icon"
+msgstr ""
+
+#: common_utils/dialogs.py:458 common_utils/dialogs.py:467
+#: common_utils/dialogs.py:471 common_utils/dialogs.py:493
+#: common_utils/dialogs.py:499 common_utils/dialogs.py:501
+#: common_utils/dialogs.py:503
+msgid "Cannot import image"
+msgstr ""
+
+#: common_utils/dialogs.py:458 common_utils/dialogs.py:501
+msgid "Source image must be a .png file."
+msgstr ""
+
+#: common_utils/dialogs.py:467
+msgid "You must specify a filename to save as."
+msgstr ""
+
+#: common_utils/dialogs.py:472
+msgid "The save as filename should consist of a filename only."
+msgstr ""
+
+#: common_utils/dialogs.py:480
+msgid "Are you sure?"
+msgstr ""
+
+#: common_utils/dialogs.py:481
+msgid "An image with this name already exists - overwrite it?"
+msgstr ""
+
+#: common_utils/dialogs.py:493
+msgid "You must specify a web domain url"
+msgstr ""
+
+#: common_utils/dialogs.py:499
+msgid "You must specify a source file."
+msgstr ""
+
+#: common_utils/dialogs.py:503
+msgid "Source image does not exist!"
+msgstr ""
+
+#: common_utils/dialogs.py:525
+msgid "Export metadata"
+msgstr ""
+
+#: common_utils/dialogs.py:534
+msgid "Fields to export in output:"
+msgstr ""
+
+#: common_utils/dialogs.py:543
+msgid "Drag and drop to re-arrange fields"
+msgstr ""
+
+#: common_utils/dialogs.py:547
+msgid "Add the index to the series-type fields"
+msgstr ""
+
+#: common_utils/dialogs.py:555
+msgid "Select &all"
+msgstr ""
+
+#: common_utils/dialogs.py:557
+msgid "Select &none"
+msgstr ""
+
+#: common_utils/dialogs.py:559
+msgid "Select &visible"
+msgstr ""
+
+#: common_utils/dialogs.py:610
+msgid "No field selected"
+msgstr ""
+
+#: common_utils/dialogs.py:632
+msgid "Select a ZIP archive file to import…"
+msgstr ""
+
+#: common_utils/dialogs.py:644
+msgid "Save ZIP archive file as…"
+msgstr ""
+
+#: common_utils/dialogs.py:668
+#, python-brace-format
+msgid "Save the {} file as…"
+msgstr ""
+
+#: common_utils/dialogs.py:683
+#, python-brace-format
+msgid "Select a {} file to import…"
+msgstr ""
+
+#: common_utils/dialogs.py:727
+#, python-brace-format
+msgid "The {PLUGIN_NAME} plugin has encounter a unhandled exception."
+msgstr ""
+
+#: common_utils/dialogs.py:741
+msgid "Unhandled exception"
+msgstr ""
+
+#: common_utils/librarys.py:49
+msgid "Could not to launch {:s}"
+msgstr ""
+
+#: common_utils/librarys.py:68
+msgid "No book selected"
+msgstr ""
+
+#: common_utils/librarys.py:74
+msgid "No book in the library"
+msgstr ""
+
+#: common_utils/librarys.py:80 common_utils/librarys.py:87
+msgid "No book in the virtual library"
+msgstr ""
+
+#: common_utils/librarys.py:93
+msgid "No book in the current search"
+msgstr ""
+
+#: common_utils/librarys.py:231
+msgid "Library name"
+msgstr ""
+
+#: common_utils/librarys.py:239
+msgid "Index"
+msgstr ""
+
+#: common_utils/templates.py:49
+msgid "Unknown"
+msgstr ""
+
+#: common_utils/templates.py:56
+msgid "Template Error"
+msgstr ""
+
+#: common_utils/templates.py:57
+msgid "Running the template returned an error:"
+msgstr ""
+
+#: common_utils/templates.py:70
+msgid "Enter a template to test using data from the selected book"
+msgstr ""
+
+#: common_utils/templates.py:77
+msgid "Template editor"
+msgstr ""
+
+#: common_utils/templates.py:106 common_utils/templates.py:109
+msgid "Open the template editor"
+msgstr ""
+
+#: common_utils/widgets.py:86
+msgid "Restart required"
+msgstr ""
+
+#: common_utils/widgets.py:87
+msgid "Title image not found - you must restart Calibre before using this plugin!"
+msgstr ""
+
+#: common_utils/widgets.py:143
+msgid "Undefined"
+msgstr ""
+
+#: common_utils/widgets.py:296
+msgid "Subset of values associate to the books"
+msgstr ""
+
+#: common_utils/widgets.py:297
+msgid "No books"
+msgstr ""
+
+#: common_utils/widgets.py:298
+#, python-brace-format
+msgid "{:d} books (no values)"
+msgstr ""
+
+#: common_utils/widgets.py:299
+#, python-brace-format
+msgid "{:d} books"
+msgstr ""
+
+#: common_utils/widgets.py:424
+msgid "No notes"
+msgstr ""
+
+#: common_utils/widgets.py:478
+msgid "Add New Image…"
+msgstr ""
