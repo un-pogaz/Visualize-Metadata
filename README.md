@@ -32,11 +32,11 @@ The plugin has the following features:
     * Minute
 * Export data to CSV or JSON
 
-This plugin attempt to be a autnomous version and replacement of the similar feature in [Job Spy](https://www.mobileread.com/forums/showthread.php?t=269911) plugin by DaltonST.
+This plugin attempt to be a autonomous version and replacement of the similar feature in [Job Spy](https://www.mobileread.com/forums/showthread.php?t=269911) plugin by DaltonST.
 
 **Special Notes:**
 
-* If you switch libraries, all dialogs open will be automaticly closed.
+* If you switch libraries, all dialogs open will be automatically closed.
 
 
 **Installation**
