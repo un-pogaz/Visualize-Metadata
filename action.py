@@ -26,11 +26,11 @@ from calibre.db.fields import FormatsField, IdentifiersField, ManyToManyField, M
 from calibre.ebooks.metadata import rating_to_stars
 from calibre.gui2 import choose_dir
 from calibre.gui2.actions import InterfaceAction
-from calibre.gui2.widgets2 import Dialog
+from calibre.gui2.widgets2 import Dialog, FlowLayout
 from calibre.utils.date import is_date_undefined
 from calibre.utils.icu import sort_key
 
-from .charts import NO_VALUE, BarChart, Chart, ChartViewWidget, LegendChart, PieChart
+from .charts import SPECIAL_KEYS, BarChart, Chart, ChartViewWidget, LegendChart, PieChart
 from .common_utils import PLUGIN_NAME, current_db, debug_print, get_gui, get_icon
 from .common_utils.librarys import field_name, get_BookIds_all, get_BookIds_search, get_BookIds_virtual
 from .common_utils.widgets import KeyValueComboBox
@@ -74,6 +74,12 @@ class VisualizeMetadataAction(InterfaceAction):
         self.all_dialogs.append(d)
         d.finished.connect(partial(self.close_dialog, d))
         d.show()
+
+
+def parse_special_key(key):
+    if key in SPECIAL_KEYS:
+        return f'<{SPECIAL_KEYS[key]}>'
+    return key
 
 
 def pick_file_to_export(field: str, ext: str, parent=None) -> str:
@@ -175,6 +181,7 @@ class GroupOption(TypedDict):
     date_group: DateGroup
     include_none: bool
     limite_top: Union[int, None]
+    count_all_others: bool
 
 
 def group_visualize_data(
@@ -184,6 +191,7 @@ def group_visualize_data(
     date_group: DateGroup,
     include_none: bool,
     limite_top: Union[int, None],
+    count_all_others: bool
 ) -> Dict[str, int]:
     db = current_db().new_api
     field_obj = db.fields[field]
@@ -226,14 +234,20 @@ def group_visualize_data(
     if group_sort in {GroupSort.alphabetical_descending, GroupSort.size_descending}:
         reverse = True
         def none_key(v):
-            return int(v is not None)
+            l = []
+            for k in SPECIAL_KEYS:
+                l.append(int(v is not k))
+            return tuple(l)
     else:
         reverse = False
         def none_key(v):
-            return int(v is None)
+            l = []
+            for k in SPECIAL_KEYS:
+                l.append(int(v is k))
+            return tuple(l)
     
     def value_key(k):
-        if not k:
+        if k in SPECIAL_KEYS:
             return
         if fm['datatype'] == 'rating':
             return k.count('★'), k.count('⯨')
@@ -260,13 +274,16 @@ def group_visualize_data(
     if limite_top < 0 and len(lst) <= -limite_top:
         return dict(sort(lst))
     
+    all_others = 0
     if limite_top > 0:
         low = min(sorted(v for k,v in lst)[-limite_top:])
+        all_others = sum(v for k,v in lst if v < low)
         lst = sort(((k,v) for k,v in lst if v >= low))
     
     if limite_top < 0:
         limite_top = -limite_top
         low = max(sorted(v for k,v in lst)[:limite_top])
+        all_others = sum(v for k,v in lst if v > low)
         lst = sort((k,v) for k,v in lst if v <= low)
     
     lst.reverse()
@@ -275,6 +292,10 @@ def group_visualize_data(
             if v == low:
                 break
         del lst[i]
+        all_others += v
+    
+    if count_all_others and all_others > 0:
+        lst.append((object, all_others))
     
     return dict(sort(lst))
 
@@ -355,6 +376,9 @@ class VisualizeMetadataDialog(Dialog):
         self.include_none = QCheckBox(_('Include books without value'), self)
         self.include_none.checkStateChanged.connect(self.refresh)
         
+        self.count_all_others = QCheckBox(_('Count values that not part of the top limit'), self)
+        self.count_all_others.checkStateChanged.connect(self.refresh)
+        
         self.export_all = QCheckBox(_('Export all data'), self)
         self.export_all.setChecked(self.last_export_all)
         self.export_all.setToolTip(
@@ -362,7 +386,7 @@ class VisualizeMetadataDialog(Dialog):
         )
         self.export_all.checkStateChanged.connect(self.export_all_changed)
         
-        h = QHBoxLayout()
+        h = FlowLayout()
         l.addLayout(h)
         h.addWidget(QLabel(_('Limit to top:'), self))
         h.addWidget(self.limite_top)
@@ -370,7 +394,7 @@ class VisualizeMetadataDialog(Dialog):
         h.addWidget(self.label_group)
         h.addWidget(self.date_group)
         h.addWidget(self.include_none)
-        h.addStretch()
+        h.addWidget(self.count_all_others)
         
         csv = QPushButton('Export CSV', self)
         csv.clicked.connect(self.export_csv)
@@ -446,6 +470,7 @@ class VisualizeMetadataDialog(Dialog):
         self.options['group_sort'] = self.group_sort.selected_key()
         self.options['date_group'] = self.date_group.selected_key()
         self.options['include_none'] = self.include_none.isChecked()
+        self.options['count_all_others'] = self.count_all_others.isChecked()
         limite_top = self.limite_top.value()
         if limite_top <= 0:
             limite_top = None
@@ -482,14 +507,12 @@ class VisualizeMetadataDialog(Dialog):
         file = pick_file_to_export(self.current_field, 'csv', self)
         if not file:
             return
-        no_value = f'<{NO_VALUE}>'
         field_name = self.field_selected.key_text_map[self.current_field].replace('"', '""')
+        data = {parse_special_key(k):v for k,v in data.items()}
         with open(file, 'w', newline='\n', encoding='utf-8') as f:
             f.write('\ufeff')  # UTF-8 BOM
             f.write('"{}","{}"\n'.format(field_name, 'Count'))
             for k,v in data.items():
-                if k is None:
-                    k = no_value
                 f.write('"{}",{}\n'.format(k.replace('"', '""'), v))
 
     def export_json(self):
@@ -500,7 +523,6 @@ class VisualizeMetadataDialog(Dialog):
         file = pick_file_to_export(self.current_field, 'json', self)
         if not file:
             return
-        no_value = f'<{NO_VALUE}>'
-        data = {(no_value if k is None else k):v for k,v in data.items()}
+        data = {parse_special_key(k):v for k,v in data.items()}
         with open(file, 'w', newline='\n', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)

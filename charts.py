@@ -53,8 +53,12 @@ from typing import Iterable, List, NamedTuple, Tuple
 
 from calibre.utils.icu import sort_key
 
-NO_VALUE = _('no value')
 LEGEND_FMT = _('{:d}:')
+
+SPECIAL_KEYS = {
+    None: _('no value'),
+    object: _('all others'),
+}
 
 COLORS = [
     QColor('#3366CC'),
@@ -116,7 +120,7 @@ class Chart:
         painter.drawText(
             rect.adjusted(offest, offest, 0, 0),
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop,
-            f'<{NO_VALUE}>',
+            f'<{SPECIAL_KEYS[None]}>',
         )
 
 
@@ -154,9 +158,10 @@ class LegendChart(Chart):
         for d in values:
             lst1.add(d.name)
             lst2.add(LEGEND_FMT.format(d.count))
-        if None in lst1:
-            text_w.append(fmi.boundingRect(NO_VALUE).width())
-            lst1.discard(None)
+        for k in SPECIAL_KEYS:
+            if k in lst1:
+                text_w.append(fmi.boundingRect(SPECIAL_KEYS[k]).width())
+                lst1.discard(k)
         for v in longest(lst1, 5):
             text_w.append(fm.boundingRect(v).width())
         for v in longest(lst2, 1):
@@ -235,10 +240,10 @@ class LegendChart(Chart):
                 LEGEND_FMT.format(legend.count),
             )
             
-            if not legend.name:
+            if legend.name in SPECIAL_KEYS:
                 font.setItalic(True)
                 painter.setFont(font)
-                text = NO_VALUE
+                text = SPECIAL_KEYS[legend.name]
             else:
                 text = legend.name
             painter.drawText(
