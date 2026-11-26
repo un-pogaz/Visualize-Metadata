@@ -467,9 +467,11 @@ class VisualizeMetadataDialog(Dialog):
         if len(self.data) < self.limite_top.value():
             return self.data
         if self.export_all.isChecked():
+            options = self.options.copy()
+            options['limite_top'] = None
             return group_visualize_data(
                 data=self.raw_data,
-                **self.options,
+                **options,
             )
         return self.data
 
