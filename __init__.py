@@ -27,7 +27,7 @@ class ActionVisualizeMetadata(InterfaceActionBase):
     description             = _('Visualize metadata statistics in your library')
     supported_platforms     = ['windows', 'osx', 'linux']
     author                  = 'un_pogaz'
-    version                 = (1, 0, 0)
+    version                 = (1, 1, 0)
     minimum_calibre_version = (5, 0, 0)
     
     actual_plugin = __name__+'.action:VisualizeMetadataAction'

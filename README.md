@@ -20,6 +20,7 @@ The plugin has the following features:
     * Current search
 * Show top X values
     * or all of them (special value 0)
+    * or the sum the exluded ones
 * Include books without value in the chart
 * Sorting by:
     * Alphabetical (ascending & descending)
