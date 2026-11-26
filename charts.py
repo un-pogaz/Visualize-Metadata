@@ -215,7 +215,7 @@ class LegendChart(Chart):
             text_margin,
             legend.color.rgb(),
             legend.name,
-            bool(legend.name),
+            legend.count,
         )))
         rslt = QPixmapCache.find(key)
         if rslt:
