@@ -274,6 +274,13 @@ def group_visualize_data(
     if limite_top < 0 and len(lst) <= -limite_top:
         return dict(sort(lst))
     
+    none_count = 0
+    for kv in lst:
+        if kv[0] is None:
+            none_count = kv[1]
+            break
+    lst = [kv for kv in lst if kv[0]]
+    
     all_others = 0
     if limite_top > 0:
         low = min(sorted(v for k,v in lst)[-limite_top:])
@@ -296,6 +303,9 @@ def group_visualize_data(
     
     if count_all_others and all_others > 0:
         lst.append((object, all_others))
+    
+    if none_count > 0:
+        lst.append((None, none_count))
     
     return dict(sort(lst))
 
