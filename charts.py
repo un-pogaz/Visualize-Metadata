@@ -68,7 +68,7 @@ COLORS = [
     QColor('#BB3333'),
     QColor('#336699'),
     QColor('#22AA99'),
-    QColor('#AAAA11'),
+    QColor('#444444'),
     QColor('#6633CC'),
     QColor('#22EE22'),
     QColor('#994499'),
@@ -421,8 +421,8 @@ class ChartViewWidget(QAbstractScrollArea):
             return not x[1][0], x[1][1], sort_key(x[1][0])
         
         icolors = cycle(COLORS)
-        for c,(i,(n,v)) in zip(icolors, sorted(enumerate(lst), key=key)):
-            lst[i] = [c,n,v]
+        for i,(n,v) in sorted(enumerate(lst), key=key):
+            lst[i] = [next(icolors),n,v]
         
         if lst[0][0] == lst[-1][0]:
             lst[-1][0] = next(icolors)
